@@ -4,6 +4,7 @@ import { evaluateContextSignals } from '../context-engine';
 import { ruleEngine } from '../rule-engine/rules';
 import { knowledgeGraph } from '../knowledge-engine/graph';
 import { DOMAIN_BLUEPRINTS, synthesizeCustomDomain } from '../../engine/dictionaries/domainSpecs';
+import { deriveDomainEntities } from './domainEntities';
 
 /**
  * ============================================================================
@@ -76,6 +77,7 @@ export function analyzeProjectConfig(config: ProjectConfig): {
       domainKey: String(domainKey),
       domainName,
       primaryEntityNames,
+      entities: [],
       industryType: domainKey,
       userRoles,
       coreWorkflows,
@@ -97,6 +99,8 @@ export function analyzeProjectConfig(config: ProjectConfig): {
     constraints: ['Zero plaintext credentials', 'Strict type safety'],
     createdAt: new Date().toISOString(),
   };
+
+  draftProject.domain.entities = deriveDomainEntities(draftProject);
 
   // 4. Compute Context Signals
   draftProject.signals = evaluateContextSignals(draftProject);

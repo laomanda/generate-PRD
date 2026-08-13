@@ -1,6 +1,7 @@
 import { ProjectModel } from '../project-model/schemas';
 import { completenessValidator } from '../validators/completenessValidator';
-import { crossDocValidator } from '../validators/crossDocValidator';
+import { crossDocEngine } from '../validators/crossDocEngine';
+import { validateMermaidSyntax, MermaidValidationError } from '../validators/mermaidValidator';
 
 export interface QualityGateStepResult {
   step: number;
@@ -62,14 +63,17 @@ export class QualityGatePipeline {
     let step4Passed = true;
 
     for (const docId of contractDocIds) {
-      const filename = `${docId === 'DESIGN' ? 'DESIGN_SYSTEM' : docId}.md`;
-      const content = documents[filename] || documents[`${docId}.md`];
+      const filename = `${docId}.md`;
+      const content = documents[filename];
       if (content) {
         const valRes = completenessValidator.validate(docId, content);
         if (!valRes.valid) {
           step4Passed = false;
           valRes.errors.forEach(e => structErrors.push(`${filename}: ${e.message}`));
         }
+      } else {
+        step4Passed = false;
+        structErrors.push(`Mandatory document file missing: "${filename}"`);
       }
     }
 
@@ -106,29 +110,25 @@ export class QualityGatePipeline {
     if (!step5Passed) globalErrors.push(...contentErrors);
 
     // STEP 6: Cross-Document Consistency Validation
-    const crossRes = crossDocValidator.validateCrossDoc(project, documents);
+    const crossRes = crossDocEngine.validateAll(project, documents);
     stepResults.push({
       step: 6,
       name: 'Cross-Document Consistency Validation',
       passed: crossRes.valid,
       message: crossRes.valid ? 'Cross-document consistency verified (0 contradictions).' : 'Cross-document contradictions found.',
-      errors: crossRes.errors.map(e => `${e.sourceDoc} ↔ ${e.targetDoc}: ${e.issue}`),
+      errors: crossRes.errors,
     });
-    if (!crossRes.valid) globalErrors.push(...crossRes.errors.map(e => e.issue));
+    if (!crossRes.valid) globalErrors.push(...crossRes.errors);
 
     // STEP 7: Markdown & Mermaid Syntax Validation
     const syntaxErrors: string[] = [];
     let step7Passed = true;
 
     for (const [filename, content] of Object.entries(documents)) {
-      if (content.includes('```mermaid')) {
-        const blocks = content.split('```mermaid');
-        for (let i = 1; i < blocks.length; i++) {
-          if (!blocks[i].includes('```')) {
-            step7Passed = false;
-            syntaxErrors.push(`${filename} contains unclosed Mermaid code block.`);
-          }
-        }
+      const mermaidRes = validateMermaidSyntax(content);
+      if (!mermaidRes.valid) {
+        step7Passed = false;
+        mermaidRes.errors.forEach((e: MermaidValidationError) => syntaxErrors.push(`${filename}: ${e.message}`));
       }
     }
 

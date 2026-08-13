@@ -9,6 +9,7 @@ interface WorkspaceState {
   selectedFile: GeneratedFile | null;
   viewMode: 'preview' | 'raw' | 'mermaid' | 'inspector';
   history: GeneratorResult[];
+  error: string | null;
   
   setConfig: (partial: Partial<ProjectConfig>) => void;
   generateWorkspace: (overrideConfig?: ProjectConfig) => void;
@@ -37,6 +38,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       selectedFile: null,
       viewMode: 'preview',
       history: [],
+      error: null,
 
       setConfig: (partial) =>
         set((state) => ({
@@ -44,14 +46,36 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         })),
 
       generateWorkspace: (overrideConfig?: ProjectConfig) => {
-        const configToUse = overrideConfig || get().config;
-        const newResult = runDevContextEngine(configToUse);
-        set((state) => ({
-          config: configToUse,
-          result: newResult,
-          selectedFile: newResult.files[0] || null,
-          history: [newResult, ...state.history.filter(h => h.projectName !== newResult.projectName)].slice(0, 10),
-        }));
+        const currentConfig = get().config;
+        const configToUse = overrideConfig || currentConfig;
+        const currentResult = get().result;
+
+        // Calculate changed fields for partial regeneration
+        const changedFields: (keyof ProjectConfig)[] = [];
+        (Object.keys(configToUse) as (keyof ProjectConfig)[]).forEach((key) => {
+          if (JSON.stringify(configToUse[key]) !== JSON.stringify(currentConfig[key])) {
+            changedFields.push(key);
+          }
+        });
+
+        try {
+          const newResult = runDevContextEngine(configToUse, {
+            previousFiles: currentResult?.files,
+            changedFields,
+          });
+
+          set((state) => ({
+            config: configToUse,
+            result: newResult,
+            selectedFile: newResult.files.find(f => f.filename === state.selectedFile?.filename) || newResult.files[0] || null,
+            history: [newResult, ...state.history.filter(h => h.projectName !== newResult.projectName)].slice(0, 10),
+            error: null,
+          }));
+        } catch (err: unknown) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          console.error('[Workspace Engine Error]', errorMsg);
+          set({ error: errorMsg });
+        }
       },
 
       setSelectedFile: (file) => set({ selectedFile: file }),
@@ -60,6 +84,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       loadHistoryItem: (item) => set({
         result: item,
         selectedFile: item.files[0] || null,
+        error: null,
       }),
 
       clearHistory: () => set({ history: [] }),

@@ -32,6 +32,29 @@ export function ExportBar({
 
   const handleExportZip = async () => {
     setExporting(true);
+    const docMap: Record<string, string> = {};
+    files.forEach(f => { docMap[f.filename] = f.content; });
+
+    // Validate Quality Gate before ZIP export
+    const { analyzeProjectConfig } = await import('@/lib/core/analyzer');
+    const { qualityGatePipeline } = await import('@/lib/core/pipeline/qualityGate');
+    const { projectModel } = analyzeProjectConfig({
+      projectName,
+      description: projectName,
+      appType: 'custom',
+      techStack: ['TypeScript'],
+      features: [],
+      dbEngine: 'PostgreSQL',
+      designVibe: 'Modern IDE Dark (Zinc & Indigo)',
+    });
+    const gateReport = qualityGatePipeline.runQualityGate(projectModel, docMap);
+
+    if (!gateReport.passed) {
+      alert(`[Export Blocked] Document bundle failed Quality Gate validation:\n\n${gateReport.errors.join('\n')}`);
+      setExporting(false);
+      return;
+    }
+
     const filename = `${projectName.toLowerCase().replace(/\s+/g, '-')}-blueprint.zip`;
     await exportFilesToZip(files, filename);
     setExporting(false);

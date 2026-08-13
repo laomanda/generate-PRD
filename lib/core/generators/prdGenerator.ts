@@ -10,6 +10,40 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
     .setMetadata('Risk Level', project.signals.riskLevel.toUpperCase())
     .setMetadata('Data Sensitivity', `${project.signals.dataSensitivityScore}/10`);
 
+  // Determine industry-specific nuances
+  const isHealth = project.domain.industryType === 'healthcare';
+  const isEcom = project.domain.industryType === 'ecommerce';
+  const isEvent = project.domain.industryType === 'event';
+  
+  const problemStatement = isHealth ? 'Manual paper-based patient records and scheduling conflicts leading to critical care delays.'
+    : isEcom ? 'High cart abandonment, inventory desync, and inefficient order fulfillment tracking.'
+    : isEvent ? 'Double-booked seats, fraudulent ticket scalping, and chaotic on-site venue check-ins.'
+    : `Manual workflow delays and unverified data integrity in ${project.domain.domainName}.`;
+
+  const nonGoals = isHealth ? ['Hardware integration with physical MRI/X-Ray machines.', 'Automated diagnostic AI replacing doctors.']
+    : isEcom ? ['Physical warehouse robotics integration.', 'In-house delivery fleet routing system.']
+    : isEvent ? ['VR/AR virtual event streaming infrastructure.', 'Secondary ticket reselling marketplace.']
+    : ['Legacy data migration tooling (handled via separate ETL CLI).', 'Native desktop executable packaging for non-web environments.'];
+
+  const businessRules = isHealth ? [
+    'Rule BR-01: PHI/PII must be encrypted at rest and in transit (HIPAA compliance).',
+    'Rule BR-02: Only assigned doctors can modify medical records.',
+  ] : isEcom ? [
+    'Rule BR-01: Inventory must be locked for 15 minutes during checkout.',
+    'Rule BR-02: Refunds cannot exceed original transaction amount.',
+  ] : isEvent ? [
+    'Rule BR-01: QR codes expire immediately upon successful check-in.',
+    'Rule BR-02: Venue capacity cannot be exceeded under any circumstances.',
+  ] : [
+    'Rule BR-01: Users must authenticate before accessing non-public resources.',
+    'Rule BR-02: All state mutations must log timestamps and actor identifiers.',
+  ];
+
+  const futureConsiderations = isHealth ? ['Telehealth video consultation integrations.', 'Wearable device health metrics syncing.']
+    : isEcom ? ['AI-driven product recommendations.', 'Subscription box recurring billing.']
+    : isEvent ? ['Interactive venue seating maps.', 'NFC wristband cashless payments at venues.']
+    : ['Realtime WebSockets push notification infrastructure.', 'Automated AI-assisted workflow predictive reporting.'];
+
   // 1. Product Overview
   builder.addSection({
     id: 'overview',
@@ -23,7 +57,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
           ordered: false,
           items: [
             `Category: ${project.domain.domainName}`,
-            `Core Tech Stack: ${project.techStack.map(t => t.name).join(', ') || 'TypeScript, Next.js'}`,
+            `Core Tech Stack: ${project.techStack.map(t => typeof t === 'string' ? t : t.name).join(', ') || 'TypeScript, Next.js'}`,
             `Primary Database Engine: ${project.dbEngine}`,
           ],
         },
@@ -42,7 +76,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
         data: {
           type: 'IMPORTANT',
           title: 'Core Domain Challenge',
-          content: `${project.projectName} resolves critical domain operational challenges in ${project.domain.domainName}: manual workflow delays and unverified data integrity.`,
+          content: `${project.projectName} resolves critical domain operational challenges: ${problemStatement}`,
         },
       },
     ],
@@ -74,10 +108,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
         type: 'list',
         data: {
           ordered: false,
-          items: [
-            'Legacy data migration tooling (handled via separate ETL CLI).',
-            'Native desktop executable packaging for non-web environments.',
-          ],
+          items: nonGoals,
         },
       },
     ],
@@ -183,6 +214,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
   });
 
   // 11. Product Features
+  const featureList = project.features.length > 0 ? project.features : project.domain.coreWorkflows;
   builder.addSection({
     id: 'features',
     title: '11. Product Features',
@@ -192,7 +224,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
         type: 'list',
         data: {
           ordered: false,
-          items: project.domain.coreWorkflows.map(w => `Feature: ${w} Dashboard & Management Panel`),
+          items: featureList.map(f => `Feature Module: ${f}`),
         },
       },
     ],
@@ -252,10 +284,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
               type: 'list',
               data: {
                 ordered: false,
-                items: [
-                  'Third-party legacy hardware protocol integrations.',
-                  'On-premise physical tape backup synchronization.',
-                ],
+                items: nonGoals,
               },
             },
           ],
@@ -274,10 +303,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
         type: 'list',
         data: {
           ordered: false,
-          items: [
-            'Rule BR-01: Users must authenticate before accessing non-public resources.',
-            'Rule BR-02: All state mutations must log timestamps and actor identifiers.',
-          ],
+          items: businessRules,
         },
       },
     ],
@@ -399,10 +425,7 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
         type: 'list',
         data: {
           ordered: false,
-          items: [
-            'Realtime WebSockets push notification infrastructure.',
-            'Automated AI-assisted workflow predictive reporting.',
-          ],
+          items: futureConsiderations,
         },
       },
     ],

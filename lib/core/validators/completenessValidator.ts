@@ -1,7 +1,8 @@
 import { SECTION_REGISTRY, DocumentContractDefinition } from '../section-registry/registry';
+import { parseMarkdownSections } from './markdownParser';
 
 export interface ValidationError {
-  type: 'MISSING_SECTION' | 'UNRESOLVED_TOKEN' | 'EMPTY_DOCUMENT' | 'INVALID_STRUCTURE';
+  type: 'MISSING_SECTION' | 'DUPLICATE_SECTION' | 'WRONG_ORDER' | 'EMPTY_SECTION' | 'UNRESOLVED_TOKEN' | 'EMPTY_DOCUMENT' | 'INVALID_STRUCTURE';
   message: string;
   sectionId?: string;
   details?: string;
@@ -37,21 +38,73 @@ export class DocumentationCompletenessValidator {
       };
     }
 
-    // 1. Check for Mandatory Sections
-    for (const reqSection of contract.mandatorySections) {
-      const titlePattern = reqSection.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`#{1,3}\\s+${titlePattern}`, 'i');
+    // Parse Markdown AST
+    const ast = parseMarkdownSections(markdownContent);
 
-      if (!regex.test(markdownContent)) {
+    // 0. Check Document Title
+    if (!ast.titleValid) {
+      errors.push({
+        type: 'INVALID_STRUCTURE',
+        message: `Missing H1 document title in ${contract.filename}`,
+      });
+    }
+
+    // 1. Check Missing Sections, Duplicate Sections, and Empty Sections
+    const sectionIndexMap: Record<string, number> = {};
+
+    contract.mandatorySections.forEach((reqSection) => {
+      // Find matching section in AST by exact normalized title
+      const matchingNodes = ast.sections.filter(s => {
+        const sNorm = s.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const rNorm = reqSection.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return sNorm === rNorm;
+      });
+
+      if (matchingNodes.length === 0) {
         errors.push({
           type: 'MISSING_SECTION',
           sectionId: reqSection.id,
           message: `Mandatory section missing: "${reqSection.title}"`,
         });
+      } else if (matchingNodes.length > 1) {
+        errors.push({
+          type: 'DUPLICATE_SECTION',
+          sectionId: reqSection.id,
+          message: `Duplicate mandatory section detected: "${reqSection.title}" (Found ${matchingNodes.length} occurrences)`,
+        });
+      } else {
+        const node = matchingNodes[0];
+        sectionIndexMap[reqSection.id] = node.startLine;
+
+        // Check for empty section body (unless section has defined subsections in contract)
+        const isParentWithSubsections = reqSection.subsections && reqSection.subsections.length > 0;
+        if (!node.hasBody && !isParentWithSubsections) {
+          errors.push({
+            type: 'EMPTY_SECTION',
+            sectionId: reqSection.id,
+            message: `Mandatory section is empty (no body text): "${reqSection.title}"`,
+          });
+        }
+      }
+    });
+
+    // 2. Check Section Ordering
+    let lastLine = -1;
+    for (const reqSection of contract.mandatorySections) {
+      const linePos = sectionIndexMap[reqSection.id];
+      if (linePos !== undefined) {
+        if (linePos < lastLine) {
+          errors.push({
+            type: 'WRONG_ORDER',
+            sectionId: reqSection.id,
+            message: `Section out of mandatory order: "${reqSection.title}" appears before preceding mandatory section.`,
+          });
+        }
+        lastLine = linePos;
       }
     }
 
-    // 2. Check for Unresolved Template Tokens
+    // 3. Check for Unresolved Template Tokens
     const forbiddenTokens = ['{{', '}}', '[TODO]', 'UNDEFINED', 'NaN', 'null null'];
     for (const token of forbiddenTokens) {
       if (markdownContent.includes(token)) {

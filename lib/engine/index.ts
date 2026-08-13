@@ -12,72 +12,99 @@ import { generateDeployment } from '../core/generators/deploymentGenerator';
 import { generateCursorRules, generateMegaPrompt } from './generators/rulesGenerator';
 import { generateReadme } from './generators/readmeGenerator';
 import { qualityGatePipeline } from '../core/pipeline/qualityGate';
+import { getAffectedDocuments } from '../core/section-registry/dependencyMap';
 
 export * from './types';
 export * from './dictionaries/techStacks';
 export * from './dictionaries/designThemes';
 export * from './dictionaries/dbPresets';
 
-export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
+export interface RunEngineOptions {
+  previousFiles?: GeneratedFile[];
+  changedFields?: (keyof ProjectConfig)[];
+}
+
+export function runDevContextEngine(
+  config: ProjectConfig,
+  options?: RunEngineOptions
+): GeneratorResult {
   const timestamp = new Date().toISOString();
   
   // 1. Run Knowledge-Driven Project Intelligence Pipeline
   const { projectModel } = analyzeProjectConfig(config);
   
-  // 2. Generate Contract-Enforced Documents from Project Model
+  // 2. Determine Partial Regeneration Invalidation Set
+  const prevFileMap: Record<string, string> = {};
+  if (options?.previousFiles) {
+    options.previousFiles.forEach(f => { prevFileMap[f.filename] = f.content; });
+  }
+
+  const affectedDocs = options?.changedFields && options.changedFields.length > 0
+    ? getAffectedDocuments(options.changedFields)
+    : null;
+
+  const getContent = (filename: string, generator: () => string): string => {
+    // If partial regeneration options are provided and this file is NOT affected, reuse previous content
+    if (affectedDocs && prevFileMap[filename] && !affectedDocs.has(filename)) {
+      return prevFileMap[filename];
+    }
+    return generator();
+  };
+
+  // 3. Generate Contract-Enforced Documents from Project Model
   const files: GeneratedFile[] = [
     {
       filename: 'PRD.md',
       path: 'PRD.md',
-      content: generatePRD(projectModel),
+      content: getContent('PRD.md', () => generatePRD(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'ARCHITECTURE.md',
       path: 'ARCHITECTURE.md',
-      content: generateArchitecture(projectModel),
+      content: getContent('ARCHITECTURE.md', () => generateArchitecture(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'DATABASE.md',
       path: 'DATABASE.md',
-      content: generateDatabase(projectModel),
+      content: getContent('DATABASE.md', () => generateDatabase(projectModel)),
       language: 'markdown',
     },
     {
-      filename: 'DESIGN_SYSTEM.md',
-      path: 'DESIGN_SYSTEM.md',
-      content: generateDesignSystem(projectModel),
+      filename: 'DESIGN.md',
+      path: 'DESIGN.md',
+      content: getContent('DESIGN.md', () => generateDesignSystem(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'TECH_STACK.md',
       path: 'TECH_STACK.md',
-      content: generateTechStack(projectModel),
+      content: getContent('TECH_STACK.md', () => generateTechStack(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'API.md',
       path: 'API.md',
-      content: generateAPI(projectModel),
+      content: getContent('API.md', () => generateAPI(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'SECURITY.md',
       path: 'SECURITY.md',
-      content: generateSecurity(projectModel),
+      content: getContent('SECURITY.md', () => generateSecurity(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'TESTING.md',
       path: 'TESTING.md',
-      content: generateTesting(projectModel),
+      content: getContent('TESTING.md', () => generateTesting(projectModel)),
       language: 'markdown',
     },
     {
       filename: 'DEPLOYMENT.md',
       path: 'DEPLOYMENT.md',
-      content: generateDeployment(projectModel),
+      content: getContent('DEPLOYMENT.md', () => generateDeployment(projectModel)),
       language: 'markdown',
     },
     {
@@ -100,14 +127,14 @@ export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
     },
   ];
 
-  // 3. Execute 8-Step Final Quality Gate Pipeline
+  // 4. Execute 8-Step Final Quality Gate Pipeline (Hard Enforcement)
   const docMap: Record<string, string> = {};
   files.forEach(f => { docMap[f.filename] = f.content; });
 
   const gateReport = qualityGatePipeline.runQualityGate(projectModel, docMap);
 
   if (!gateReport.passed) {
-    console.warn('[Quality Gate Warning] Document export had quality gate warnings:', gateReport.errors);
+    throw new Error(`[Quality Gate Failure] Generation blocked: ${gateReport.errors.join(' | ')}`);
   }
 
   return {

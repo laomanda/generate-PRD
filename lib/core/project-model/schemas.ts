@@ -31,10 +31,42 @@ export const InferredFactSchema = z.object({
 
 export type InferredFact = z.infer<typeof InferredFactSchema>;
 
+export const AttributeDefinitionSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  isPk: z.boolean().optional(),
+  isFk: z.boolean().optional(),
+  isNullable: z.boolean().optional(),
+  description: z.string(),
+});
+
+export const RelationshipDefinitionSchema = z.object({
+  targetEntity: z.string(),
+  type: z.enum(['1:1', '1:N', 'N:M']),
+  foreignKey: z.string(),
+  description: z.string(),
+});
+
+export const DomainEntityModelSchema = z.object({
+  name: z.string(),
+  tableName: z.string(),
+  description: z.string(),
+  attributes: z.array(AttributeDefinitionSchema),
+  relationships: z.array(RelationshipDefinitionSchema),
+  constraints: z.array(z.string()),
+  indexes: z.array(z.string()),
+  lifecycleStates: z.array(z.string()).optional(),
+});
+
+export type AttributeDefinition = z.infer<typeof AttributeDefinitionSchema>;
+export type RelationshipDefinition = z.infer<typeof RelationshipDefinitionSchema>;
+export type DomainEntityModel = z.infer<typeof DomainEntityModelSchema>;
+
 export const DomainFactSchema = z.object({
   domainKey: z.string(),
   domainName: z.string(),
   primaryEntityNames: z.array(z.string()),
+  entities: z.array(DomainEntityModelSchema).default([]),
   industryType: z.enum([
     'saas',
     'ecommerce',
@@ -46,6 +78,7 @@ export const DomainFactSchema = z.object({
     'realestate',
     'social',
     'custom',
+    'event', // Adding event here
   ]),
   userRoles: z.array(
     z.object({
