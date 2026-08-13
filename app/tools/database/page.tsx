@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, Download, Copy, Check, Play } from 'lucide-react';
+import { Database, Copy, Check, Play } from 'lucide-react';
 import { Card, Button, Badge } from '@/components/ui/Button';
 import { generateDatabase } from '@/lib/engine/generators/dbGenerator';
 import { MermaidDiagram } from '@/components/workspace/MermaidDiagram';

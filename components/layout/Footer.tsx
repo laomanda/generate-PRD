@@ -1,4 +1,4 @@
-import { Terminal, Shield, Cpu, Code } from 'lucide-react';
+import { Terminal, Shield, Cpu } from 'lucide-react';
 
 export function Footer() {
   return (

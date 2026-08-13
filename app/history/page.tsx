@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { History, Trash2, ExternalLink, Calendar, FileText } from 'lucide-react';
 import { useWorkspaceStore } from '@/lib/store/useWorkspaceStore';
 import { Card, Button, Badge } from '@/components/ui/Button';
+import { GeneratorResult } from '@/lib/engine/types';
 
 export default function HistoryPage() {
   const router = useRouter();
   const { history, loadHistoryItem, clearHistory } = useWorkspaceStore();
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: GeneratorResult) => {
     loadHistoryItem(item);
     router.push('/workspace');
   };

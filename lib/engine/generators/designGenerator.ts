@@ -1,7 +1,7 @@
 import { ProjectConfig } from '../types';
 
 export function generateDesignSystem(config: ProjectConfig): string {
-  const { projectName, designVibe } = config;
+  const { designVibe } = config;
   const vibe = designVibe || 'Modern IDE Dark';
 
   return `# 🎨 DESIGN SYSTEM & VISUAL GUIDELINES

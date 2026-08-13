@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkspaceStore } from '@/lib/store/useWorkspaceStore';
-import { TECH_STACKS, DESIGN_THEMES, DB_PRESETS } from '@/lib/engine';
+import { TECH_STACKS, DESIGN_THEMES, DB_PRESETS, AppType } from '@/lib/engine';
 import { Button, Card } from '../ui/Button';
 import { Layers, Database, Palette, Cpu, Play } from 'lucide-react';
 
@@ -46,7 +46,7 @@ export function WizardForm() {
             <label className="block text-xs font-mono text-zinc-400 mb-1">Application Type</label>
             <select
               value={config.appType}
-              onChange={(e) => setConfig({ appType: e.target.value as any })}
+              onChange={(e) => setConfig({ appType: e.target.value as AppType })}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-100 focus:outline-none focus:border-indigo-500"
             >
               <option value="saas">SaaS Platform</option>

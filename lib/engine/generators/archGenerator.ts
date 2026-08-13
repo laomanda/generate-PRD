@@ -1,7 +1,7 @@
 import { ProjectConfig } from '../types';
 
 export function generateArchitecture(config: ProjectConfig): string {
-  const { projectName, techStack, appType } = config;
+  const { projectName, techStack } = config;
   return `# 🏗️ SYSTEM ARCHITECTURE DOCUMENT
 
 ## 1. High-Level System Architecture

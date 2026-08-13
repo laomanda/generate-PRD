@@ -27,7 +27,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
         const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
         const { svg } = await mermaid.render(id, chart);
         setSvgContent(svg);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Mermaid render error:', err);
         setError('Failed to render Mermaid diagram. Displaying raw block.');
       }

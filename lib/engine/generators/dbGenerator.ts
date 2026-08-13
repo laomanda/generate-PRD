@@ -1,7 +1,7 @@
 import { ProjectConfig } from '../types';
 
 export function generateDatabase(config: ProjectConfig): string {
-  const { projectName, dbEngine } = config;
+  const { dbEngine } = config;
   const engine = dbEngine || 'PostgreSQL';
 
   return `# 🗄️ DATABASE SCHEMA & ERD DOCUMENTATION
