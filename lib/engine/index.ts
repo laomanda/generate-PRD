@@ -3,6 +3,7 @@ import { generatePRD } from './generators/prdGenerator';
 import { generateArchitecture } from './generators/archGenerator';
 import { generateDatabase } from './generators/dbGenerator';
 import { generateDesignSystem } from './generators/designGenerator';
+import { generateTechStack } from './generators/techStackGenerator';
 import { generateCursorRules, generateMegaPrompt } from './generators/rulesGenerator';
 import { generateReadme } from './generators/readmeGenerator';
 
@@ -37,6 +38,12 @@ export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
       filename: 'DESIGN_SYSTEM.md',
       path: 'DESIGN_SYSTEM.md',
       content: generateDesignSystem(config),
+      language: 'markdown',
+    },
+    {
+      filename: 'TECH_STACK.md',
+      path: 'TECH_STACK.md',
+      content: generateTechStack(config),
       language: 'markdown',
     },
     {
