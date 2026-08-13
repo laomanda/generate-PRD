@@ -14,6 +14,7 @@ export interface AppTypeSpec {
     description: string;
     columns: { name: string; type: string; nullable: boolean; defaultVal?: string; key?: 'PK' | 'FK' | 'UNIQUE'; description: string }[];
   }[];
+  mermaidRelationships: string[];
   userFlow: string[];
   kpis: string[];
 }
@@ -124,6 +125,11 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
         ],
       },
     ],
+    mermaidRelationships: [
+      'USERS ||--o{ WORKSPACES : owns',
+      'WORKSPACES ||--o{ WORKSPACE_MEMBERS : contains',
+      'WORKSPACES ||--o{ API_KEYS : issues',
+    ],
     userFlow: [
       'User visits Landing Page -> Clicks Sign Up',
       'Fills Email/Password -> Verifies Email via OTP/Link',
@@ -190,7 +196,6 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
           { name: 'slug', type: 'VARCHAR(255)', nullable: false, key: 'UNIQUE', description: 'SEO friendly URL path' },
           { name: 'price', type: 'NUMERIC(10, 2)', nullable: false, description: 'Price in base currency' },
           { name: 'stock_quantity', type: 'INTEGER', nullable: false, defaultVal: '0', description: 'Available stock units' },
-          { name: 'category_id', type: 'UUID', nullable: false, key: 'FK', description: 'References categories(id)' },
           { name: 'created_at', type: 'TIMESTAMP WITH TIME ZONE', nullable: false, defaultVal: 'CURRENT_TIMESTAMP', description: 'Date added' },
         ],
       },
@@ -199,13 +204,15 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
         description: 'Customer purchase transaction records',
         columns: [
           { name: 'id', type: 'UUID', nullable: false, key: 'PK', description: 'Order primary key' },
-          { name: 'user_id', type: 'UUID', nullable: true, key: 'FK', description: 'References users(id) for registered customers' },
           { name: 'status', type: 'VARCHAR(50)', nullable: false, defaultVal: "'pending'", description: 'Order state (pending, paid, shipped, cancelled)' },
           { name: 'total_amount', type: 'NUMERIC(10, 2)', nullable: false, description: 'Final order total price' },
           { name: 'shipping_address', type: 'TEXT', nullable: false, description: 'Structured delivery address JSON/Text' },
           { name: 'created_at', type: 'TIMESTAMP WITH TIME ZONE', nullable: false, defaultVal: 'CURRENT_TIMESTAMP', description: 'Order timestamp' },
         ],
       },
+    ],
+    mermaidRelationships: [
+      'PRODUCTS ||--o{ ORDERS : included_in',
     ],
     userFlow: [
       'Buyer browses Home / Catalog -> Searches for product keyword',
@@ -260,10 +267,12 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
           { name: 'id', type: 'UUID', nullable: false, key: 'PK', description: 'Event record identifier' },
           { name: 'metric_name', type: 'VARCHAR(100)', nullable: false, description: 'Name of tracked metric' },
           { name: 'metric_value', type: 'NUMERIC(12, 4)', nullable: false, description: 'Numeric value payload' },
-          { name: 'dimensions', type: 'JSONB', nullable: true, description: 'Key-value dimension tags (e.g. region, device)' },
           { name: 'timestamp', type: 'TIMESTAMP WITH TIME ZONE', nullable: false, defaultVal: 'CURRENT_TIMESTAMP', description: 'Event log timestamp' },
         ],
       },
+    ],
+    mermaidRelationships: [
+      'ANALYTICS_EVENTS ||--o{ METRIC_REPORTS : consolidates',
     ],
     userFlow: [
       'User logs into Dashboard -> Views Overview Metric Summary Cards',
@@ -314,12 +323,14 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
         description: 'Mobile device push notification registration tokens',
         columns: [
           { name: 'id', type: 'UUID', nullable: false, key: 'PK', description: 'Device registration primary key' },
-          { name: 'user_id', type: 'UUID', nullable: false, key: 'FK', description: 'References users(id)' },
           { name: 'push_token', type: 'TEXT', nullable: false, key: 'UNIQUE', description: 'FCM or APNS push token string' },
           { name: 'platform', type: 'VARCHAR(20)', nullable: false, description: 'Platform (ios, android)' },
           { name: 'last_active_at', type: 'TIMESTAMP WITH TIME ZONE', nullable: false, defaultVal: 'CURRENT_TIMESTAMP', description: 'Last active ping' },
         ],
       },
+    ],
+    mermaidRelationships: [
+      'USERS ||--o{ DEVICE_TOKENS : registers',
     ],
     userFlow: [
       'Mobile App launches -> Checks stored Refresh Token',
@@ -371,10 +382,12 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
           { name: 'id', type: 'UUID', nullable: false, key: 'PK', description: 'Webhook record primary identifier' },
           { name: 'target_url', type: 'TEXT', nullable: false, description: 'HTTPS destination endpoint URL' },
           { name: 'secret_key', type: 'VARCHAR(255)', nullable: false, description: 'HMAC signature verification secret' },
-          { name: 'events', type: 'JSONB', nullable: false, description: 'Subscribed event topics (e.g. order.created)' },
           { name: 'is_active', type: 'BOOLEAN', nullable: false, defaultVal: 'true', description: 'Active delivery flag' },
         ],
       },
+    ],
+    mermaidRelationships: [
+      'DEVELOPERS ||--o{ WEBHOOKS : subscribes',
     ],
     userFlow: [
       'Developer registers on Developer Portal -> Obtains API Key & Webhook Secret',
@@ -424,10 +437,12 @@ export const APP_TYPE_SPECS: Record<AppType, AppTypeSpec> = {
         columns: [
           { name: 'id', type: 'UUID', nullable: false, key: 'PK', description: 'Primary key identifier' },
           { name: 'title', type: 'VARCHAR(255)', nullable: false, description: 'Entity title label' },
-          { name: 'payload', type: 'JSONB', nullable: false, description: 'Flexible domain data attributes' },
           { name: 'created_at', type: 'TIMESTAMP WITH TIME ZONE', nullable: false, defaultVal: 'CURRENT_TIMESTAMP', description: 'Creation timestamp' },
         ],
       },
+    ],
+    mermaidRelationships: [
+      'USERS ||--o{ CUSTOM_RECORDS : owns',
     ],
     userFlow: [
       'User opens Application -> Renders Main Interactive Workspace',

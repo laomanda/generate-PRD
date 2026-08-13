@@ -5,6 +5,7 @@ export type TechStack = {
   name: string;
   category: 'frontend' | 'backend' | 'database' | 'fullstack';
   description: string;
+  keywords?: string[];
 };
 
 export type DesignTheme = {

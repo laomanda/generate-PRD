@@ -1,60 +1,60 @@
 import { ProjectConfig } from '../types';
-import { APP_TYPE_SPECS } from '../dictionaries/appTypeSpecs';
+import { composeProjectSpec } from '../composer';
 
 export function generatePRD(config: ProjectConfig): string {
-  const { projectName, appType, description, features, techStack } = config;
-  const spec = APP_TYPE_SPECS[appType] || APP_TYPE_SPECS.saas;
+  const { techStack } = config;
+  const spec = composeProjectSpec(config);
+  const { appName, appDescription, appTypeSpec, detectedModules, requirements, goals, targetUsers, inScope, outOfScope, userFlowSteps, kpis, securityNotes, apiEndpoints, uiPages } = spec;
 
-  const appName = projectName || 'DevContext Application';
-  const appDesc = description || spec.summary;
-  const inScopeList = features.length > 0 ? features : spec.inScope;
+  const moduleCount = detectedModules.length;
+  const tableCount = spec.tables.length;
 
   return `# 📋 PRODUCT REQUIREMENT DOCUMENT (PRD)
 
 > **Document Status**: APPROVED & ACTIVE  
 > **Target Product**: **${appName}**  
-> **Application Type**: **${spec.name}**  
+> **Application Type**: **${appTypeSpec.name}**  
+> **Detected Feature Modules**: **${moduleCount}** modules → **${tableCount}** database tables → **${requirements.length}** functional requirements  
 > **Core Formula**: \`PRD = Why → Who → What → How → Done When → How to Measure\`
 
 ---
 
 ## 1. Product Overview
 - **Product Name**: ${appName}
-- **Category**: ${spec.name}
-- **Context & Vision**: ${appDesc}
+- **Category**: ${appTypeSpec.name}
+- **Context & Vision**: ${appDescription}
 - **Core Technology Stack**: ${techStack.join(', ') || 'Next.js 14, TypeScript, Tailwind CSS, PostgreSQL'}
+- **Feature Scope**: ${detectedModules.map(m => m.name).join(', ') || 'Base platform features'}
 
 ---
 
 ## 2. Problem Statement
 ${spec.problemStatement}
-- **Core Pain Point**: Developers and engineering teams waste excessive time debugging inconsistent feature boundaries, hallucinated AI code snippets, and undocumented business logic.
-- **Solution Strategy**: Implement a deterministic, highly modular architecture built strictly against type-safe specifications.
 
 ---
 
 ## 3. Goals & Objectives
-${spec.goals.map((g, i) => `${i + 1}. **${g}**`).join('\n')}
+${goals.map((g, i) => `${i + 1}. **${g}**`).join('\n')}
 
 ---
 
 ## 4. Target Users
-${spec.targetUsers.map(u => `- **${u.role}**: ${u.need}`).join('\n')}
+${targetUsers.map(u => `- **${u.role}**: ${u.need}`).join('\n')}
 
 ---
 
 ## 5. Scope Boundaries
 
 ### 🟢 In Scope (MVP Release)
-${inScopeList.map(f => `- **${f}**: Core functional requirement for initial product deployment.`).join('\n')}
+${inScope.map(f => `- **${f}**`).join('\n')}
 
 ### 🔴 Out of Scope (Future Roadmap)
-${spec.outOfScope.map(f => `- **${f}**: Explicitly excluded from MVP build to maintain focus on core delivery.`).join('\n')}
+${outOfScope.map(f => `- ${f}`).join('\n')}
 
 ---
 
 ## 6. Functional Requirements ⭐
-${spec.functionalRequirements.map((fr, idx) => `
+${requirements.map((fr, idx) => `
 ### 6.${idx + 1} Feature: ${fr.feature}
 - **Specification**: ${fr.description}
 - **User Story**: *"${fr.userStory}"*
@@ -68,38 +68,42 @@ ${fr.acceptanceCriteria.map(ac => `  - [ ] ${ac}`).join('\n')}
 
 \`\`\`mermaid
 graph TD
-    Start["User Visits App Landing / Entry"] --> Auth["Authentication & Onboarding"]
-    Auth --> Dashboard["Main Workspace Dashboard"]
-    Dashboard --> CoreAction["Executes Primary Feature Task"]
-    CoreAction --> StateSave["Client & Database State Sync"]
-    StateSave --> Success["Receives Instant Feedback & Confirmation"]
+    Start["User Visits ${appName}"] --> Auth["Authentication & Onboarding"]
+    Auth --> Dashboard["Main Dashboard / Home"]
+${detectedModules.slice(0, 4).map((m, i) => `    Dashboard --> Feature${i}["${m.name}"]`).join('\n')}
+${detectedModules.length > 0 ? `    ${detectedModules.slice(0, 4).map((_, i) => `Feature${i}`).pop()} --> Success["Task Complete & Feedback"]` : '    Dashboard --> Success["Task Complete & Feedback"]'}
 \`\`\`
 
 ### Step-by-Step Flow:
-${spec.userFlow.map((step, i) => `${i + 1}. ${step}`).join('\n')}
+${userFlowSteps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
 
 ---
 
 ## 8. UI/UX Requirements
-- **Design Aesthetic**: Modern high-density IDE-inspired interface.
-- **Theme**: Dark Mode First layout with crisp panel borders and high-contrast typography.
+- **Design Aesthetic**: ${config.designVibe || 'Modern high-density interface'}.
 - **Responsive Guidelines**:
   - **Mobile (<768px)**: Single column stacked cards with collapsible drawer menus.
   - **Tablet (768px - 1024px)**: 2-column responsive layout with toggleable sidebars.
-  - **Desktop (>1024px)**: Fixed Explorer sidebar with split-screen workspace content panels.
+  - **Desktop (>1024px)**: Fixed sidebar with split-screen workspace content panels.
+${uiPages.length > 0 ? `
+### Required Pages & Screens:
+${uiPages.map(p => `- **${p}**`).join('\n')}
+` : ''}
 
 ---
 
 ## 9. Non-Functional Requirements (NFR)
-- **Performance**: Sub-100ms client reactivity, <0.01s architecture engine generation latency.
-- **Security**: Zero server-side API key logging, local storage data isolation, strict Zod schema validation.
+- **Performance**: Sub-100ms client reactivity, <500ms API response latency for 95th percentile.
+- **Security**:
+${securityNotes.length > 0 ? securityNotes.map(s => `  - ${s}`).join('\n') : '  - Zero plaintext credential storage.\n  - Strict input validation on all user-facing endpoints.\n  - HTTPS enforced in all environments.'}
 - **Maintainability**: Modular functional codebase with 100% strict TypeScript types (zero \`any\` types permitted).
 - **Accessibility (a11y)**: High contrast ratio (>4.5:1), visible keyboard focus rings, semantic HTML5 tags.
 
 ---
 
 ## 10. Acceptance Criteria ⭐ (Definition of Done)
-- [ ] All 14 PRD sections are fully documented and integrated into developer workflows.
+- [ ] All ${requirements.length} functional requirements implemented and tested.
+- [ ] All ${tableCount} database tables created with proper constraints and indexes.
 - [ ] Zero blocking linter warnings or TypeScript type errors on production build.
 - [ ] All user stories have verified functional test cases and visual state confirmation.
 - [ ] Single-click ZIP export bundles all generated project documentation seamlessly.
@@ -107,27 +111,32 @@ ${spec.userFlow.map((step, i) => `${i + 1}. ${step}`).join('\n')}
 ---
 
 ## 11. Technical Requirements & Constraints
-- **Core Tech Stack**: ${techStack.join(', ')}
+- **Core Tech Stack**: ${techStack.join(', ') || 'Not specified'}
 - **Runtime Environment**: Node.js >= 20.0.0 LTS / Modern Browser Engine.
-- **Architecture Directive**: Pure client-side functional core with zero mandatory external API keys.
+- **Architecture Directive**: Modular, testable, type-safe codebase with clear separation of concerns.
+${apiEndpoints.length > 0 ? `
+### API Endpoint Blueprint:
+${apiEndpoints.map(e => `- \`${e}\``).join('\n')}
+` : ''}
 
 ---
 
 ## 12. Success Metrics / KPI
-${spec.kpis.map(kpi => `- **${kpi}**: Primary product health indicator.`).join('\n')}
+${kpis.map(kpi => `- **${kpi}**`).join('\n')}
 
 ---
 
 ## 13. Timeline & Milestones
-- **Phase 1 (Sprint 1)**: Core architecture setup, TypeScript type definitions, & design tokens setup.
-- **Phase 2 (Sprint 2)**: Layout building, component library construction, & form wizard integration.
-- **Phase 3 (Sprint 3)**: State management store wiring & generator engine integration.
-- **Phase 4 (Sprint 4)**: End-to-end testing, static build optimization, and launch.
+- **Phase 1 (Sprint 1-2)**: Core architecture setup, database schema, authentication${detectedModules.some(m => m.id === 'auth') ? ' & session management' : ''}.
+- **Phase 2 (Sprint 3-4)**: ${detectedModules.slice(0, 3).map(m => m.name).join(', ') || 'Primary feature implementation'}.
+- **Phase 3 (Sprint 5-6)**: ${detectedModules.slice(3).map(m => m.name).join(', ') || 'Polish, testing, and optimization'}.
+- **Phase 4 (Sprint 7-8)**: End-to-end testing, performance optimization, staging deployment, and launch.
 
 ---
 
 ## 14. Risks & Dependencies
-- **Browser Storage Quotas**: Dependency on local browser \`localStorage\` limits; mitigated by clean state pruning.
-- **Third-Party Script Failures**: External diagram libraries (Mermaid); mitigated by fallback raw text rendering.
+- **Database Schema Complexity**: ${tableCount} tables require careful migration planning and relationship integrity checks.
+- **Third-Party Integration Failures**: External payment/email services; mitigated by webhook retry mechanisms and fallback error handling.
+- **Feature Scope Creep**: ${moduleCount} feature modules; mitigated by strict scope boundaries defined in Section 5.
 `;
 }

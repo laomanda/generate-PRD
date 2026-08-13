@@ -25,15 +25,19 @@ export function FreestyleForm() {
         features: suggestedFeatures,
       });
       setIsPolishing(false);
-    }, 300);
+    }, 200);
   };
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
+    const { suggestedStack, suggestedFeatures, suggestedAppName } = enhancePrompt(prompt);
+    
     setConfig({
       rawPrompt: prompt,
-      projectName: prompt.slice(0, 25).trim() || 'Custom Architecture Blueprint',
+      projectName: suggestedAppName,
       description: prompt,
+      features: suggestedFeatures,
+      techStack: suggestedStack,
     });
     generateWorkspace();
     router.push('/workspace');
@@ -61,7 +65,7 @@ export function FreestyleForm() {
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe your app idea (e.g. 'Build a real-time SaaS dashboard for crypto analytics using Next.js 14, Tailwind, and Supabase...')"
+          placeholder="Tuliskan ide aplikasi lu secara bebas... (Contoh: 'Bikin toko online sepatu dengan fitur pembayaran Stripe, stok barang, rekomendasi produk, dan review komentar...')"
           rows={5}
           className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3.5 text-xs text-zinc-100 font-mono focus:outline-none focus:border-indigo-500 transition-colors resize-none placeholder:text-zinc-600"
         />

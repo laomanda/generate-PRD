@@ -1,10 +1,12 @@
 import { ProjectConfig } from '../types';
-import { APP_TYPE_SPECS } from '../dictionaries/appTypeSpecs';
+import { composeProjectSpec } from '../composer';
 import { DESIGN_VIBE_SPECS } from '../dictionaries/designVibeSpecs';
 
 export function generateCursorRules(config: ProjectConfig): string {
-  const { projectName, techStack, designVibe } = config;
-  const appName = projectName || 'DevContext Project';
+  const { techStack, designVibe } = config;
+  const spec = composeProjectSpec(config);
+  const { appName, detectedModules, tables, securityNotes } = spec;
+
   const vibeName = designVibe || 'Modern IDE Dark (Zinc & Indigo)';
   const vibe = DESIGN_VIBE_SPECS[vibeName] || DESIGN_VIBE_SPECS['Modern IDE Dark (Zinc & Indigo)'];
 
@@ -14,6 +16,8 @@ export function generateCursorRules(config: ProjectConfig): string {
 - **Project Name**: ${appName}
 - **Tech Stack**: ${techStack.join(', ') || 'Next.js 14, TypeScript, Tailwind CSS, PostgreSQL'}
 - **Visual Vibe**: ${vibe.name} (${vibe.direction})
+- **Feature Modules**: ${detectedModules.map(m => m.name).join(', ') || 'Base platform'}
+- **Database Tables**: ${tables.map(t => t.name).join(', ')}
 
 ## Strict Coding & Architecture Guardrails
 1. **100% Strict TypeScript**: Never output \`any\` or un-typed parameters. Define explicit interfaces for all data models.
@@ -21,18 +25,27 @@ export function generateCursorRules(config: ProjectConfig): string {
 3. **Pure Functional Core**: Core business algorithms must be pure, side-effect free TypeScript functions in \`lib/\`.
 4. **No Artificial Placeholders**: Never leave \`// TODO\` or dummy mock handlers in production code paths.
 5. **Zero Mandatory API Keys**: Maintain client-side local caching resilience without breaking on network disconnects.
+
+## Database Schema Awareness
+${tables.map(t => `- **${t.name}**: ${t.description} (${t.columns.length} columns)`).join('\n')}
+
+## Security Rules
+${securityNotes.length > 0 ? securityNotes.map(s => `- ${s}`).join('\n') : '- Hash all passwords with Argon2id or Bcrypt.\n- Validate all user inputs with Zod schemas.\n- Never expose sensitive data in client bundles.'}
 `;
 }
 
 export function generateMegaPrompt(config: ProjectConfig): string {
-  const { projectName, description, appType, techStack, features, dbEngine, designVibe } = config;
-  const appSpec = APP_TYPE_SPECS[appType] || APP_TYPE_SPECS.saas;
+  const { techStack, dbEngine, designVibe } = config;
+  const spec = composeProjectSpec(config);
+  const { appName, appDescription, appTypeSpec, detectedModules, tables, requirements, goals, userFlowSteps, securityNotes, apiEndpoints, uiPages, kpis } = spec;
+
   const vibeName = designVibe || 'Modern IDE Dark (Zinc & Indigo)';
   const vibe = DESIGN_VIBE_SPECS[vibeName] || DESIGN_VIBE_SPECS['Modern IDE Dark (Zinc & Indigo)'];
 
-  const appName = projectName || 'DevContext Application';
-  const appDesc = description || appSpec.summary;
-  const featureList = features.length > 0 ? features : appSpec.inScope;
+  const moduleCount = detectedModules.length;
+  const tableCount = tables.length;
+  const requirementCount = requirements.length;
+  const endpointCount = apiEndpoints.length;
 
   return `================================================================================
 🚀 SEKALI JALAN MASTER EXECUTION PROMPT: ${appName.toUpperCase()}
@@ -42,36 +55,76 @@ export function generateMegaPrompt(config: ProjectConfig): string {
 
 You are tasked with building a high-performance, production-ready web application called "${appName}" in ONE SHOT ("Sekali Jalan").
 
+System Complexity: ${moduleCount} feature modules → ${tableCount} database tables → ${requirementCount} requirements → ${endpointCount} API endpoints.
+
 --------------------------------------------------------------------------------
 1. PROJECT CONTEXT & VISION
 --------------------------------------------------------------------------------
 - Product Name: ${appName}
-- Application Type: ${appSpec.name}
-- Vision & Purpose: ${appDesc}
+- Application Type: ${appTypeSpec.name}
+- Vision & Purpose: ${appDescription}
 - Core Tech Stack: ${techStack.join(', ') || 'Next.js 14+, TypeScript, Tailwind CSS, PostgreSQL'}
 - Primary Database Engine: ${dbEngine || 'PostgreSQL'}
 - Visual Theme Direction: ${vibe.name} (${vibe.direction})
 
 --------------------------------------------------------------------------------
-2. KEY FEATURES & SCOPE BOUNDARIES (IN-SCOPE)
+2. FEATURE MODULES & SCOPE (${moduleCount} MODULES)
 --------------------------------------------------------------------------------
-${featureList.map((f, i) => `${i + 1}. ${f}: Implement core functionality with clean user interaction.`).join('\n')}
+${detectedModules.map((m, i) => `
+### Module ${i + 1}: ${m.name}
+- **Tables**: ${m.tables.map(t => t.name).join(', ')}
+- **Requirements**: ${m.requirements.map(r => r.feature).join(', ')}
+- **API Endpoints**: ${m.apiEndpoints.length} endpoints
+- **UI Pages**: ${m.uiPages.join(', ')}
+`).join('')}
 
 --------------------------------------------------------------------------------
-3. EMBEDDED TRINITY BLUEPRINT CONTEXT
+3. DATABASE SCHEMA BLUEPRINT (${tableCount} TABLES)
 --------------------------------------------------------------------------------
+${tables.map(t => `
+**${t.name}** (${t.description}):
+${t.columns.map(c => `  - ${c.name}: ${c.type}${c.key ? ` [${c.key}]` : ''}${c.nullable ? '' : ' NOT NULL'}${c.defaultVal ? ` DEFAULT ${c.defaultVal}` : ''}`).join('\n')}
+`).join('\n')}
 
-[PRD HIGHLIGHTS]
-- Target Persona: ${appSpec.targetUsers[0]?.role} (${appSpec.targetUsers[0]?.need})
-- Problem Solved: ${appSpec.problemStatement}
-- Key KPI Target: ${appSpec.kpis[0]}
+--------------------------------------------------------------------------------
+4. FUNCTIONAL REQUIREMENTS (${requirementCount} ITEMS)
+--------------------------------------------------------------------------------
+${requirements.map((r, i) => `
+${i + 1}. **${r.feature}**: ${r.description}
+   User Story: "${r.userStory}"
+   Acceptance:
+${r.acceptanceCriteria.map(ac => `   - [ ] ${ac}`).join('\n')}
+`).join('\n')}
 
-[DATABASE HIGHLIGHTS]
-- Primary Tables: ${appSpec.tables.map(t => t.name).join(', ')}
-- ERD Relationship: ${appSpec.tables[0]?.name} -> ${appSpec.tables[1]?.name || 'workspaces'}
-- SQL Dialect: ${dbEngine || 'PostgreSQL'}
+--------------------------------------------------------------------------------
+5. GOALS & KPIs
+--------------------------------------------------------------------------------
+Goals:
+${goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
-[DESIGN SYSTEM TOKENS]
+KPI Targets:
+${kpis.map(k => `- ${k}`).join('\n')}
+
+--------------------------------------------------------------------------------
+6. USER FLOW STEPS
+--------------------------------------------------------------------------------
+${userFlowSteps.map((step, i) => `${i + 1}. ${step}`).join('\n')}
+
+${apiEndpoints.length > 0 ? `--------------------------------------------------------------------------------
+7. API ENDPOINT BLUEPRINT (${endpointCount} ENDPOINTS)
+--------------------------------------------------------------------------------
+${apiEndpoints.map(e => `- \`${e}\``).join('\n')}
+` : ''}
+
+${uiPages.length > 0 ? `--------------------------------------------------------------------------------
+8. UI PAGES & SCREENS
+--------------------------------------------------------------------------------
+${uiPages.map(p => `- ${p}`).join('\n')}
+` : ''}
+
+--------------------------------------------------------------------------------
+9. DESIGN SYSTEM TOKENS
+--------------------------------------------------------------------------------
 - App Background: ${vibe.colors[0]?.tailwind} (${vibe.colors[0]?.hex})
 - Card Surface: ${vibe.colors[1]?.tailwind} (${vibe.colors[1]?.hex})
 - Element Surface: ${vibe.colors[2]?.tailwind} (${vibe.colors[2]?.hex})
@@ -80,39 +133,47 @@ ${featureList.map((f, i) => `${i + 1}. ${f}: Implement core functionality with c
 - Typography Stack: ${vibe.fontFamily.ui} / Code: ${vibe.fontFamily.code}
 
 --------------------------------------------------------------------------------
-4. STEP-BY-STEP 4-PHASE IMPLEMENTATION ROADMAP (SEKALI JALAN)
+10. STEP-BY-STEP IMPLEMENTATION ROADMAP (SEKALI JALAN)
 --------------------------------------------------------------------------------
 
 PHASE 1: FOUNDATION & DATA TYPES SETUP
-1. Set up strict TypeScript interfaces in \`lib/types.ts\` for all core entities (${appSpec.tables.map(t => t.name).join(', ')}).
-2. Create state management store in \`lib/store/\` using Zustand with persistence middleware.
-3. Build pure business logic engine helpers in \`lib/engine/\`.
+1. Set up strict TypeScript interfaces in \`lib/types.ts\` for all core entities (${tables.map(t => t.name).join(', ')}).
+2. Create database schema with ${tableCount} tables using ${dbEngine || 'PostgreSQL'} + ${techStack.includes('Prisma ORM') ? 'Prisma' : 'Drizzle ORM'}.
+3. Create state management store in \`lib/store/\` using Zustand with persistence middleware.
 
 PHASE 2: DESIGN SYSTEM & COMPONENT LIBRARY
 1. Configure Tailwind CSS tokens to match \`${vibe.name}\`.
 2. Build reusable UI components in \`components/ui/\`:
-   - \`Button.tsx\` (Primary, Secondary, Outline, Danger variants with loading & active states)
-   - \`Card.tsx\` (High-density dark IDE card container)
-   - \`Badge.tsx\` (Status badge indicators)
-3. Build layout components in \`components/layout/\` (\`Navbar.tsx\`, \`Footer.tsx\`).
+   - \`Button.tsx\` (Primary, Secondary, Outline, Danger variants)
+   - \`Card.tsx\` (Surface container with proper borders)
+   - \`Badge.tsx\` (Status indicators)
+   - \`Modal.tsx\` (Confirmation and form modals)
+3. Build layout components in \`components/layout/\` (\`Navbar.tsx\`, \`Footer.tsx\`, \`Sidebar.tsx\`).
 
-PHASE 3: FEATURE FORMS & WORKSPACE INTERFACE
-1. Implement input forms with React Hook Form & Zod schema validation.
-2. Build interactive split-screen workspace with File Tree Explorer and Content Viewer.
-3. Integrate Mermaid.js dynamic diagram renderer.
+PHASE 3: FEATURE MODULE IMPLEMENTATION
+${detectedModules.map((m, i) => `${i + 1}. **${m.name}**: Implement ${m.requirements.map(r => r.feature).join(', ')}. Build pages: ${m.uiPages.join(', ')}.`).join('\n')}
 
 PHASE 4: POLISH & VERIFICATION
 1. Verify 100% strict TypeScript compliance (ZERO \`any\` types permitted).
 2. Run ESLint checks and resolve all warnings.
-3. Test client-side ZIP export utility.
+3. End-to-end test all ${requirementCount} functional requirements.
+4. Performance audit: all pages load under 3 seconds.
 
 --------------------------------------------------------------------------------
-5. STRICT GUARDRAILS & ANTI-HALLUCINATION RULES
+11. STRICT GUARDRAILS & ANTI-HALLUCINATION RULES
 --------------------------------------------------------------------------------
 - RULE 1: Never output \`any\` types. Write complete, robust interfaces.
-- RULE 2: Stick strictly to the \`${vibe.name}\` color tokens.
+- RULE 2: Stick strictly to the \`${vibe.name}\` color tokens. Do NOT invent random colors.
 - RULE 3: Do NOT output placeholder code or \`// TODO\` stubs. Write full working logic.
 - RULE 4: Ensure all interactive buttons have hover, active click, and disabled states.
+- RULE 5: All database queries MUST include proper error handling and transaction management.
+
+${securityNotes.length > 0 ? `
+--------------------------------------------------------------------------------
+12. SECURITY REQUIREMENTS
+--------------------------------------------------------------------------------
+${securityNotes.map(s => `- ${s}`).join('\n')}
+` : ''}
 
 START EXECUTION NOW AND BUILD THE COMPLETE APPLICATION STEP-BY-STEP!
 ================================================================================
