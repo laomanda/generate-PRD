@@ -7,13 +7,13 @@ interface WorkspaceState {
   config: ProjectConfig;
   result: GeneratorResult | null;
   selectedFile: GeneratedFile | null;
-  viewMode: 'preview' | 'raw' | 'mermaid';
+  viewMode: 'preview' | 'raw' | 'mermaid' | 'inspector';
   history: GeneratorResult[];
   
   setConfig: (partial: Partial<ProjectConfig>) => void;
-  generateWorkspace: () => void;
+  generateWorkspace: (overrideConfig?: ProjectConfig) => void;
   setSelectedFile: (file: GeneratedFile | null) => void;
-  setViewMode: (mode: 'preview' | 'raw' | 'mermaid') => void;
+  setViewMode: (mode: 'preview' | 'raw' | 'mermaid' | 'inspector') => void;
   loadHistoryItem: (item: GeneratorResult) => void;
   clearHistory: () => void;
 }
@@ -43,10 +43,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           config: { ...state.config, ...partial },
         })),
 
-      generateWorkspace: () => {
-        const { config } = get();
-        const newResult = runDevContextEngine(config);
+      generateWorkspace: (overrideConfig?: ProjectConfig) => {
+        const configToUse = overrideConfig || get().config;
+        const newResult = runDevContextEngine(configToUse);
         set((state) => ({
+          config: configToUse,
           result: newResult,
           selectedFile: newResult.files[0] || null,
           history: [newResult, ...state.history.filter(h => h.projectName !== newResult.projectName)].slice(0, 10),

@@ -6,16 +6,18 @@ import { Card, Button, Badge } from '@/components/ui/Button';
 import { generateDatabase } from '@/lib/engine/generators/dbGenerator';
 import { MermaidDiagram } from '@/components/workspace/MermaidDiagram';
 
-export function DatabaseToolPage() {
+export default function DatabaseToolPage() {
   const [dbEngine, setDbEngine] = useState('PostgreSQL');
+  const [projectName, setProjectName] = useState('Database System Blueprint');
   const [copied, setCopied] = useState(false);
+
   const [content, setContent] = useState(() =>
     generateDatabase({
-      projectName: 'Database Micro-Tool Spec',
+      projectName: 'Database System Blueprint',
       appType: 'saas',
       description: 'Standalone Database Tool',
       techStack: ['PostgreSQL'],
-      features: [],
+      features: ['Authentication & Authorization', 'User Profile Management', 'Role-Based Access (RBAC)'],
       dbEngine: 'PostgreSQL',
       designVibe: 'Default',
     })
@@ -23,9 +25,9 @@ export function DatabaseToolPage() {
 
   const handleGenerate = () => {
     const nextContent = generateDatabase({
-      projectName: 'Database Micro-Tool Spec',
+      projectName,
       appType: 'saas',
-      description: 'Standalone Database Tool',
+      description: projectName,
       techStack: [dbEngine],
       features: [],
       dbEngine,
@@ -60,22 +62,35 @@ export function DatabaseToolPage() {
         </p>
       </div>
 
-      <Card className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <label className="text-xs text-zinc-400 font-bold whitespace-nowrap">Engine Dialect:</label>
-          <select
-            value={dbEngine}
-            onChange={(e) => setDbEngine(e.target.value)}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="PostgreSQL">PostgreSQL</option>
-            <option value="MySQL">MySQL</option>
-            <option value="SQLite">SQLite</option>
-            <option value="MongoDB">MongoDB</option>
-          </select>
+      <Card className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-zinc-400 mb-1">Project Name / Domain:</label>
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="e.g. Website Sekolah, Rumah Sakit, Kasir Restoran, Rental Mobil..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-zinc-400 mb-1">Engine Dialect:</label>
+            <select
+              value={dbEngine}
+              onChange={(e) => setDbEngine(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="PostgreSQL">PostgreSQL</option>
+              <option value="MySQL">MySQL</option>
+              <option value="SQLite">SQLite</option>
+              <option value="MongoDB">MongoDB</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 justify-end">
           <Button onClick={handleGenerate} size="sm" className="gap-2">
             <Play className="w-3.5 h-3.5" />
             <span>Generate ERD & SQL</span>
@@ -106,5 +121,3 @@ export function DatabaseToolPage() {
     </div>
   );
 }
-
-export default DatabaseToolPage;

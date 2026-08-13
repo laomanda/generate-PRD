@@ -9,8 +9,8 @@ interface ExportBarProps {
   files: GeneratedFile[];
   projectName: string;
   selectedFile: GeneratedFile | null;
-  viewMode: 'preview' | 'raw' | 'mermaid';
-  onViewModeChange: (mode: 'preview' | 'raw' | 'mermaid') => void;
+  viewMode: 'preview' | 'raw' | 'mermaid' | 'inspector';
+  onViewModeChange: (mode: 'preview' | 'raw' | 'mermaid' | 'inspector') => void;
 }
 
 export function ExportBar({
@@ -68,6 +68,16 @@ export function ExportBar({
         >
           <Network className="w-3.5 h-3.5" />
           <span>Mermaid ERD</span>
+        </button>
+
+        <button
+          onClick={() => onViewModeChange('inspector')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-colors ${
+            viewMode === 'inspector' ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/50 font-medium' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <span className="text-xs">🧠</span>
+          <span>Intelligence Inspector</span>
         </button>
       </div>
 

@@ -8,14 +8,17 @@ import { AppType } from '@/lib/engine/types';
 
 export default function PrdToolPage() {
   const [appType, setAppType] = useState<AppType>('saas');
+  const [projectName, setProjectName] = useState('Product Specification Blueprint');
+  const [description, setDescription] = useState('Comprehensive Product Requirement Document');
   const [copied, setCopied] = useState(false);
+  
   const [content, setContent] = useState(() =>
     generatePRD({
-      projectName: 'PRD Micro-Tool Spec',
+      projectName: 'Product Specification Blueprint',
       appType: 'saas',
-      description: 'Standalone Product Requirement Document Spec',
-      techStack: ['Next.js', 'TypeScript', 'Tailwind CSS', 'PostgreSQL'],
-      features: ['Authentication', 'Subscription Billing', 'Workspace RBAC', 'API Key Management'],
+      description: 'Comprehensive Product Requirement Document',
+      techStack: ['Next.js 14+ (App Router)', 'TypeScript', 'Tailwind CSS', 'PostgreSQL'],
+      features: ['Authentication & Authorization', 'User Profile Management', 'Role-Based Access (RBAC)'],
       dbEngine: 'PostgreSQL',
       designVibe: 'Modern IDE Dark (Zinc & Indigo)',
     })
@@ -23,11 +26,11 @@ export default function PrdToolPage() {
 
   const handleGenerate = () => {
     const nextContent = generatePRD({
-      projectName: 'PRD Micro-Tool Spec',
+      projectName,
       appType,
-      description: 'Standalone Product Requirement Document Spec',
-      techStack: ['Next.js', 'TypeScript', 'Tailwind CSS', 'PostgreSQL'],
-      features: ['Authentication', 'Subscription Billing', 'Workspace RBAC', 'API Key Management'],
+      description: `${projectName} - ${description}`,
+      techStack: ['Next.js 14+ (App Router)', 'TypeScript', 'Tailwind CSS', 'PostgreSQL'],
+      features: [],
       dbEngine: 'PostgreSQL',
       designVibe: 'Modern IDE Dark (Zinc & Indigo)',
     });
@@ -56,24 +59,48 @@ export default function PrdToolPage() {
         </p>
       </div>
 
-      <Card className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <label className="text-xs text-zinc-400 font-bold whitespace-nowrap">Application Type:</label>
-          <select
-            value={appType}
-            onChange={(e) => setAppType(e.target.value as AppType)}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
-          >
-            <option value="saas">SaaS Multi-Tenant Platform</option>
-            <option value="e-commerce">E-Commerce Storefront</option>
-            <option value="dashboard">Analytics Dashboard</option>
-            <option value="mobile">Mobile Backend API</option>
-            <option value="api">Developer API Platform</option>
-            <option value="custom">Custom Web Solution</option>
-          </select>
+      <Card className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-zinc-400 mb-1">Project Name:</label>
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="e.g. Website Sekolah 1, Kasir Restoran, Rental Mobil..."
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-zinc-400 mb-1">Application Type:</label>
+            <select
+              value={appType}
+              onChange={(e) => setAppType(e.target.value as AppType)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="saas">SaaS Multi-Tenant Platform</option>
+              <option value="e-commerce">E-Commerce Storefront</option>
+              <option value="dashboard">Analytics Dashboard</option>
+              <option value="mobile">Mobile Backend API</option>
+              <option value="api">Developer API Platform</option>
+              <option value="custom">Custom Web Solution</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 mb-1">Project Description / Purpose:</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Detailed description or keywords (e.g. guru, siswa, kelas, nilai, absensi...)"
+            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 justify-end pt-2">
           <Button onClick={handleGenerate} size="sm" className="gap-2">
             <Play className="w-3.5 h-3.5" />
             <span>Generate 14-Point PRD</span>

@@ -8,6 +8,7 @@ export function generatePRD(config: ProjectConfig): string {
 
   const moduleCount = detectedModules.length;
   const tableCount = spec.tables.length;
+  const cleanAppName = appName.replace(/"/g, "'");
 
   return `# 📋 PRODUCT REQUIREMENT DOCUMENT (PRD)
 
@@ -68,9 +69,9 @@ ${fr.acceptanceCriteria.map(ac => `  - [ ] ${ac}`).join('\n')}
 
 \`\`\`mermaid
 graph TD
-    Start["User Visits ${appName}"] --> Auth["Authentication & Onboarding"]
+    Start["User Visits ${cleanAppName}"] --> Auth["Authentication & Onboarding"]
     Auth --> Dashboard["Main Dashboard / Home"]
-${detectedModules.slice(0, 4).map((m, i) => `    Dashboard --> Feature${i}["${m.name}"]`).join('\n')}
+${detectedModules.slice(0, 4).map((m, i) => `    Dashboard --> Feature${i}["${m.name.replace(/"/g, "'")}"]`).join('\n')}
 ${detectedModules.length > 0 ? `    ${detectedModules.slice(0, 4).map((_, i) => `Feature${i}`).pop()} --> Success["Task Complete & Feedback"]` : '    Dashboard --> Success["Task Complete & Feedback"]'}
 \`\`\`
 

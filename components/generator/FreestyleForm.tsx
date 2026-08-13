@@ -32,14 +32,18 @@ export function FreestyleForm() {
     e.preventDefault();
     const { suggestedStack, suggestedFeatures, suggestedAppName } = enhancePrompt(prompt);
     
-    setConfig({
+    const newConfig = {
       rawPrompt: prompt,
       projectName: suggestedAppName,
       description: prompt,
       features: suggestedFeatures,
       techStack: suggestedStack,
-    });
-    generateWorkspace();
+      appType: config.appType || 'custom',
+      dbEngine: config.dbEngine || 'PostgreSQL',
+      designVibe: config.designVibe || 'Modern IDE Dark (Zinc & Indigo)',
+    };
+
+    generateWorkspace(newConfig);
     router.push('/workspace');
   };
 

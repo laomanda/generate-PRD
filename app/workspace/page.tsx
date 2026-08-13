@@ -5,6 +5,7 @@ import { useWorkspaceStore } from '@/lib/store/useWorkspaceStore';
 import { FileTree } from '@/components/workspace/FileTree';
 import { MarkdownViewer } from '@/components/workspace/MarkdownViewer';
 import { MermaidDiagram } from '@/components/workspace/MermaidDiagram';
+import { IntelligenceInspector } from '@/components/workspace/IntelligenceInspector';
 import { ExportBar } from '@/components/workspace/ExportBar';
 import { Button } from '@/components/ui/Button';
 import { Terminal, Sparkles } from 'lucide-react';
@@ -97,6 +98,8 @@ export default function WorkspacePage() {
                 />
               </div>
             )}
+
+            {viewMode === 'inspector' && <IntelligenceInspector />}
           </div>
         </div>
       </div>

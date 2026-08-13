@@ -1,9 +1,14 @@
 import { ProjectConfig, GeneratorResult, GeneratedFile } from './types';
-import { generatePRD } from './generators/prdGenerator';
-import { generateArchitecture } from './generators/archGenerator';
-import { generateDatabase } from './generators/dbGenerator';
-import { generateDesignSystem } from './generators/designGenerator';
-import { generateTechStack } from './generators/techStackGenerator';
+import { analyzeProjectConfig } from '../core/analyzer';
+import { generatePRD } from '../core/generators/prdGenerator';
+import { generateArchitecture } from '../core/generators/architectureGenerator';
+import { generateDatabase } from '../core/generators/databaseGenerator';
+import { generateDesignSystem } from '../core/generators/designGenerator';
+import { generateTechStack } from '../core/generators/techStackGenerator';
+import { generateAPI } from '../core/generators/apiGenerator';
+import { generateSecurity } from '../core/generators/securityGenerator';
+import { generateTesting } from '../core/generators/testingGenerator';
+import { generateDeployment } from '../core/generators/deploymentGenerator';
 import { generateCursorRules, generateMegaPrompt } from './generators/rulesGenerator';
 import { generateReadme } from './generators/readmeGenerator';
 
@@ -15,35 +20,63 @@ export * from './dictionaries/dbPresets';
 export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
   const timestamp = new Date().toISOString();
   
+  // 1. Run Knowledge-Driven Project Intelligence Pipeline
+  const { projectModel } = analyzeProjectConfig(config);
+  
+  // 2. Generate Documents from Project Model
   const files: GeneratedFile[] = [
     {
       filename: 'PRD.md',
       path: 'PRD.md',
-      content: generatePRD(config),
+      content: generatePRD(projectModel),
       language: 'markdown',
     },
     {
       filename: 'ARCHITECTURE.md',
       path: 'ARCHITECTURE.md',
-      content: generateArchitecture(config),
+      content: generateArchitecture(projectModel),
       language: 'markdown',
     },
     {
       filename: 'DATABASE.md',
       path: 'DATABASE.md',
-      content: generateDatabase(config),
+      content: generateDatabase(projectModel),
       language: 'markdown',
     },
     {
       filename: 'DESIGN_SYSTEM.md',
       path: 'DESIGN_SYSTEM.md',
-      content: generateDesignSystem(config),
+      content: generateDesignSystem(projectModel),
       language: 'markdown',
     },
     {
       filename: 'TECH_STACK.md',
       path: 'TECH_STACK.md',
-      content: generateTechStack(config),
+      content: generateTechStack(projectModel),
+      language: 'markdown',
+    },
+    {
+      filename: 'API.md',
+      path: 'API.md',
+      content: generateAPI(projectModel),
+      language: 'markdown',
+    },
+    {
+      filename: 'SECURITY.md',
+      path: 'SECURITY.md',
+      content: generateSecurity(projectModel),
+      language: 'markdown',
+    },
+    {
+      filename: 'TESTING.md',
+      path: 'TESTING.md',
+      content: generateTesting(projectModel),
+      language: 'markdown',
+    },
+    {
+      filename: 'DEPLOYMENT.md',
+      path: 'DEPLOYMENT.md',
+      content: generateDeployment(projectModel),
       language: 'markdown',
     },
     {
@@ -63,12 +96,6 @@ export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
       path: 'MEGA_PROMPT.txt',
       content: generateMegaPrompt(config),
       language: 'text',
-    },
-    {
-      filename: 'TESTING.md',
-      path: 'TESTING.md',
-      content: `# 🧪 TESTING STRATEGY\n\n- Run unit tests with Vitest/Jest.\n- End-to-end user journeys with Playwright.\n`,
-      language: 'markdown',
     },
   ];
 

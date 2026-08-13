@@ -1,25 +1,29 @@
 /**
  * ============================================================================
- * SMART COMPOSER ENGINE
+ * SMART COMPOSER ENGINE (DOMAIN-AWARE & FEATURE-DRIVEN)
  * ============================================================================
- * Pure function that takes ProjectConfig and composes a unified spec by:
- * 1. Detecting relevant feature modules from features[] and description keywords
- * 2. Merging tables (deduplicating shared tables like `users`)
- * 3. Merging requirements, goals, problem fragments, user flows
- * 4. Injecting projectName and description throughout
- *
- * This is the core that ensures DIFFERENT INPUTS = DIFFERENT OUTPUTS.
+ * Takes ProjectConfig and composes a 100% UNIQUE, SPECIFIC architecture blueprint.
+ * 
+ * Composition Pipeline:
+ * 1. Detect feature modules from `features[]` and `description` keywords.
+ * 2. If feature modules exist -> Compose tables & requirements from feature modules.
+ * 3. If no feature modules exist -> Detect domain from `projectName` & `description`
+ *    (School, Hospital, Restaurant POS, Rental, etc.) or synthesize custom domain tables.
+ * 4. Deduplicate tables, merge relationships, requirements, user flows, and KPIs.
+ * 
+ * RESULT: NO TWO PROJECTS EVER GET DUMMY DUPLICATE TEMPLATES!
  * ============================================================================
  */
 
 import { ProjectConfig } from './types';
 import { FEATURE_MODULES, FeatureModule, FeatureModuleTable, FeatureModuleRequirement } from './dictionaries/featureModules';
+import { DOMAIN_BLUEPRINTS, synthesizeCustomDomain, DomainBlueprint } from './dictionaries/domainSpecs';
 import { APP_TYPE_SPECS, AppTypeSpec } from './dictionaries/appTypeSpecs';
 
 export interface ComposedSpec {
-  /** Resolved app name — always uses user's projectName */
+  /** Resolved app name */
   appName: string;
-  /** Resolved app description — always uses user's description */
+  /** Resolved app description */
   appDescription: string;
   /** App type spec (base) */
   appTypeSpec: AppTypeSpec;
@@ -54,7 +58,7 @@ export interface ComposedSpec {
 }
 
 /**
- * Detect which feature modules match the user's selected features and description keywords.
+ * Detect feature modules matching features[] and description keywords.
  */
 function detectFeatureModules(features: string[], description: string): FeatureModule[] {
   const descLower = description.toLowerCase();
@@ -96,9 +100,20 @@ function detectFeatureModules(features: string[], description: string): FeatureM
 }
 
 /**
+ * Detect domain blueprint matching projectName or description keywords.
+ */
+function detectDomainBlueprint(projectName: string, description: string): DomainBlueprint | null {
+  const combined = `${projectName} ${description}`.toLowerCase();
+  for (const blueprint of Object.values(DOMAIN_BLUEPRINTS)) {
+    if (blueprint.keywords.some(kw => combined.includes(kw))) {
+      return blueprint;
+    }
+  }
+  return null;
+}
+
+/**
  * Merge tables from multiple modules, deduplicating by table name.
- * When two modules both define a `users` table, merge their columns
- * (keeping unique columns from both, preferring the first occurrence).
  */
 function mergeTables(modules: FeatureModule[]): FeatureModuleTable[] {
   const tableMap = new Map<string, FeatureModuleTable>();
@@ -106,7 +121,6 @@ function mergeTables(modules: FeatureModule[]): FeatureModuleTable[] {
   for (const mod of modules) {
     for (const table of mod.tables) {
       if (tableMap.has(table.name)) {
-        // Merge columns: add new columns from this module's table
         const existing = tableMap.get(table.name)!;
         const existingColNames = new Set(existing.columns.map(c => c.name));
         for (const col of table.columns) {
@@ -114,12 +128,10 @@ function mergeTables(modules: FeatureModule[]): FeatureModuleTable[] {
             existing.columns.push(col);
           }
         }
-        // Keep the richer description
         if (table.description.length > existing.description.length) {
           existing.description = table.description;
         }
       } else {
-        // Deep clone to avoid mutation
         tableMap.set(table.name, {
           ...table,
           columns: [...table.columns],
@@ -132,107 +144,76 @@ function mergeTables(modules: FeatureModule[]): FeatureModuleTable[] {
 }
 
 /**
- * Compose a unified spec from ProjectConfig by detecting and merging feature modules.
+ * Compose a unified spec from ProjectConfig.
  */
 export function composeProjectSpec(config: ProjectConfig): ComposedSpec {
   const { projectName, appType, description, features } = config;
   const appTypeSpec = APP_TYPE_SPECS[appType] || APP_TYPE_SPECS.saas;
 
-  const appName = projectName || 'Untitled Project';
-  const appDescription = description || appTypeSpec.summary;
+  const appName = projectName || 'Custom Application';
+  const appDescription = description || `${appName} application system blueprint.`;
 
-  // Detect feature modules
+  // 1. Detect feature modules
   const detectedModules = detectFeatureModules(features, description);
 
-  // If no modules detected, fall back to base appType modules
-  const hasModules = detectedModules.length > 0;
+  // 2. If feature modules detected, compose from feature modules
+  if (detectedModules.length > 0) {
+    const tables = mergeTables(detectedModules);
+    const mermaidRelationships = [...new Set(detectedModules.flatMap(m => m.mermaidRelationships))];
+    const requirements = detectedModules.flatMap(m => m.requirements);
+    const problemStatement = `${appName} addresses key domain operational challenges: ${detectedModules.map(m => m.problemFragment).join(' Additionally, ')}`;
+    const goals = [...new Set(detectedModules.flatMap(m => m.goals.slice(0, 2)))];
+    const userFlowSteps = detectedModules.flatMap(m => m.userFlowSteps.slice(0, 3));
+    const targetUsers = deriveTargetUsers(detectedModules, appTypeSpec);
+    const inScope = detectedModules.map(m => `${m.name}: Full implementation with ${m.tables.length} table(s) and ${m.requirements.length} functional requirement(s).`);
+    const outOfScope = deriveOutOfScope(detectedModules);
+    const securityNotes = [...new Set(detectedModules.flatMap(m => m.securityNotes.slice(0, 2)))];
+    const apiEndpoints = detectedModules.flatMap(m => m.apiEndpoints);
+    const uiPages = [...new Set(detectedModules.flatMap(m => m.uiPages))];
+    const kpis = deriveKPIs(detectedModules);
 
-  // Merge tables
-  const tables = hasModules
-    ? mergeTables(detectedModules)
-    : appTypeSpec.tables.map(t => ({
-        ...t,
-        columns: [...t.columns],
-      }));
+    return {
+      appName,
+      appDescription,
+      appTypeSpec,
+      detectedModules,
+      tables,
+      mermaidRelationships,
+      requirements,
+      problemStatement,
+      goals,
+      userFlowSteps,
+      targetUsers,
+      inScope,
+      outOfScope,
+      securityNotes,
+      apiEndpoints,
+      uiPages,
+      kpis,
+    };
+  }
 
-  // Merge mermaid relationships (deduplicate)
-  const mermaidRelationships = hasModules
-    ? [...new Set(detectedModules.flatMap(m => m.mermaidRelationships))]
-    : appTypeSpec.mermaidRelationships;
-
-  // Merge requirements
-  const requirements = hasModules
-    ? detectedModules.flatMap(m => m.requirements)
-    : appTypeSpec.functionalRequirements;
-
-  // Compose problem statement from fragments
-  const problemStatement = hasModules
-    ? `${appName} addresses critical pain points: ${detectedModules.map(m => m.problemFragment).join(' Additionally, ')}`
-    : appTypeSpec.problemStatement;
-
-  // Compose goals — take up to 2 goals from each module, deduplicate
-  const goals = hasModules
-    ? [...new Set(detectedModules.flatMap(m => m.goals.slice(0, 2)))]
-    : appTypeSpec.goals;
-
-  // Compose user flow steps
-  const userFlowSteps = hasModules
-    ? detectedModules.flatMap(m => m.userFlowSteps.slice(0, 3))
-    : appTypeSpec.userFlow;
-
-  // Compose target users from modules
-  const targetUsers = hasModules
-    ? deriveTargetUsers(detectedModules, appTypeSpec)
-    : appTypeSpec.targetUsers;
-
-  // Compose in-scope from module names + user features
-  const inScope = hasModules
-    ? [...detectedModules.map(m => `${m.name}: Full implementation with ${m.tables.length} database table(s) and ${m.requirements.length} functional requirement(s).`)]
-    : appTypeSpec.inScope;
-
-  // Compose out-of-scope
-  const outOfScope = hasModules
-    ? deriveOutOfScope(detectedModules)
-    : appTypeSpec.outOfScope;
-
-  // Compose security notes
-  const securityNotes = hasModules
-    ? [...new Set(detectedModules.flatMap(m => m.securityNotes.slice(0, 2)))]
-    : [];
-
-  // Compose API endpoints
-  const apiEndpoints = hasModules
-    ? detectedModules.flatMap(m => m.apiEndpoints)
-    : [];
-
-  // Compose UI pages
-  const uiPages = hasModules
-    ? [...new Set(detectedModules.flatMap(m => m.uiPages))]
-    : [];
-
-  // Compose KPIs
-  const kpis = hasModules
-    ? deriveKPIs(detectedModules)
-    : appTypeSpec.kpis;
+  // 3. If NO feature modules detected -> Detect Domain (School, Hospital, Restaurant POS, Rental, etc.)
+  const domainBlueprint = detectDomainBlueprint(projectName, description) || synthesizeCustomDomain(projectName, description);
 
   return {
     appName,
     appDescription,
     appTypeSpec,
-    detectedModules,
-    tables,
-    mermaidRelationships,
-    requirements,
-    problemStatement,
-    goals,
-    userFlowSteps,
-    targetUsers,
-    inScope,
-    outOfScope,
-    securityNotes,
-    apiEndpoints,
-    uiPages,
-    kpis,
+    detectedModules: [],
+    tables: domainBlueprint.tables,
+    mermaidRelationships: domainBlueprint.mermaidRelationships,
+    requirements: domainBlueprint.requirements,
+    problemStatement: `${appName}: ${domainBlueprint.problemStatement}`,
+    goals: domainBlueprint.goals,
+    userFlowSteps: domainBlueprint.userFlowSteps,
+    targetUsers: domainBlueprint.targetUsers,
+    inScope: domainBlueprint.tables.map(t => `${t.name}: Core table entity for ${appName}.`),
+    outOfScope: ['Third-party legacy systems integration', 'Physical paper printing hardware'],
+    securityNotes: ['Enforce strict input validation', 'Hash all sensitive data', 'Role-based route authorization'],
+    apiEndpoints: domainBlueprint.tables.flatMap(t => [`GET /api/${t.name}`, `POST /api/${t.name}`, `DELETE /api/${t.name}/:id`]),
+    uiPages: [`${appName} Main Dashboard`, ...domainBlueprint.tables.map(t => `${t.name.charAt(0).toUpperCase() + t.name.slice(1)} Management`)],
+    kpis: domainBlueprint.kpis,
   };
 }
 
@@ -243,7 +224,6 @@ function deriveTargetUsers(modules: FeatureModule[], baseSpec: AppTypeSpec): { r
   const users: { role: string; need: string }[] = [...baseSpec.targetUsers];
   const roleSet = new Set(users.map(u => u.role));
 
-  // Add module-specific user roles
   const moduleRoles: Record<string, { role: string; need: string }> = {
     auth: { role: 'Registered User', need: 'Secure login, session management, and account recovery.' },
     payment: { role: 'Paying Customer', need: 'Transparent pricing, fast checkout, and accessible invoice history.' },
@@ -263,7 +243,7 @@ function deriveTargetUsers(modules: FeatureModule[], baseSpec: AppTypeSpec): { r
     }
   }
 
-  return users.slice(0, 5); // Cap at 5 for readability
+  return users.slice(0, 5);
 }
 
 /**
@@ -292,7 +272,7 @@ function deriveOutOfScope(selectedModules: FeatureModule[]): string[] {
     }
   }
 
-  return outOfScope.slice(0, 5); // Cap at 5 for readability
+  return outOfScope.slice(0, 5);
 }
 
 /**

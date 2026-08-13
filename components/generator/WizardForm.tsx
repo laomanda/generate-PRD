@@ -30,7 +30,7 @@ export function WizardForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    generateWorkspace();
+    generateWorkspace(config);
     router.push('/workspace');
   };
 
