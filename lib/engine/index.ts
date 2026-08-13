@@ -11,6 +11,7 @@ import { generateTesting } from '../core/generators/testingGenerator';
 import { generateDeployment } from '../core/generators/deploymentGenerator';
 import { generateCursorRules, generateMegaPrompt } from './generators/rulesGenerator';
 import { generateReadme } from './generators/readmeGenerator';
+import { qualityGatePipeline } from '../core/pipeline/qualityGate';
 
 export * from './types';
 export * from './dictionaries/techStacks';
@@ -23,7 +24,7 @@ export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
   // 1. Run Knowledge-Driven Project Intelligence Pipeline
   const { projectModel } = analyzeProjectConfig(config);
   
-  // 2. Generate Documents from Project Model
+  // 2. Generate Contract-Enforced Documents from Project Model
   const files: GeneratedFile[] = [
     {
       filename: 'PRD.md',
@@ -98,6 +99,16 @@ export function runDevContextEngine(config: ProjectConfig): GeneratorResult {
       language: 'text',
     },
   ];
+
+  // 3. Execute 8-Step Final Quality Gate Pipeline
+  const docMap: Record<string, string> = {};
+  files.forEach(f => { docMap[f.filename] = f.content; });
+
+  const gateReport = qualityGatePipeline.runQualityGate(projectModel, docMap);
+
+  if (!gateReport.passed) {
+    console.warn('[Quality Gate Warning] Document export had quality gate warnings:', gateReport.errors);
+  }
 
   return {
     projectName: config.projectName || 'DevContext Project',

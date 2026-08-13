@@ -4,122 +4,58 @@ import { renderDocumentIRToMarkdown } from '../markdown-engine';
 
 export function buildDatabaseIR(project: ProjectModel): DocumentIR {
   const dbName = project.projectName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-  const builder = new DocumentIRBuilder('DATABASE', `🗄️ DATABASE SCHEMA & ERD DOCUMENTATION`)
+  const builder = new DocumentIRBuilder('DATABASE', `Database Documentation`)
     .setMetadata('DBMS Engine', project.dbEngine)
     .setMetadata('Database Name', dbName)
     .setMetadata('Domain Industry', project.domain.domainName)
     .setMetadata('Database Complexity', project.signals.databaseComplexity);
 
-  // 1. Overview
-  builder.addSection({
-    id: 'db-overview',
-    title: '1. Database Overview',
-    level: 2,
-    nodes: [
-      {
-        type: 'paragraph',
-        text: `Relational schema design for **${project.projectName}** supporting ACID transactional integrity and index-optimized access patterns.`,
-      },
-    ],
-  });
+  const entity = project.domain.primaryEntityNames[0] || 'record';
+  const entityPlural = `${entity.toLowerCase()}s`;
 
-  // 2. ERD Diagram
-  const primaryEntity = project.domain.primaryEntityNames[0] || 'entity';
-  const entitySingular = primaryEntity.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const entityPlural = `${entitySingular}s`;
+  const sections = [
+    { id: 'db-overview', title: '1. Database Overview', text: `Relational schema design for **${project.projectName}** supporting ACID transactional integrity.` },
+    { id: 'db-tech', title: '2. Database Technology', text: `Database Engine: ${project.dbEngine} with connection pooling.` },
+    { id: 'db-architecture', title: '3. Database Architecture', text: 'Primary-Replica deployment model with automatic failover.' },
+    { id: 'schema-overview', title: '4. Schema Overview', text: `Relational tables cataloging ${entityPlural} and authentication accounts.` },
+    {
+      id: 'erd',
+      title: '5. Entity Relationship Diagram',
+      code: `erDiagram\n    USERS ||--o{ ${entityPlural.toUpperCase()} : owns`,
+    },
+    { id: 'tables', title: '6. Tables', text: `Primary tables: \`users\`, \`${entityPlural}\`, \`audit_logs\`.` },
+    { id: 'columns-types', title: '7. Columns & Data Types', text: 'UUID PKs, VARCHAR strings, TIMESTAMP WITH TIME ZONE timestamps.' },
+    { id: 'primary-keys', title: '8. Primary Keys', text: 'All tables use RFC 4122 random UUID primary keys.' },
+    { id: 'foreign-keys', title: '9. Foreign Keys', text: `\`${entityPlural}.user_id\` references \`users.id\` ON DELETE CASCADE.` },
+    { id: 'relationships', title: '10. Relationships', text: 'One-to-Many ownership relationships between Users and Domain Entities.' },
+    { id: 'constraints', title: '11. Constraints', text: 'NOT NULL constraints enforced on critical data fields.' },
+    { id: 'unique-constraints', title: '12. Unique Constraints', text: 'UNIQUE indexes on user emails and domain codes.' },
+    { id: 'indexes', title: '13. Indexes', text: 'B-Tree indexes on foreign key join columns and status fields.' },
+    { id: 'business-rules', title: '14. Database Business Rules', text: 'State changes must pass database validation triggers.' },
+    { id: 'auth-data', title: '15. Authentication Data', text: 'Stored in `users` table with Argon2id password hashing.' },
+    { id: 'authorization-data', title: '16. Authorization Data', text: 'User permission levels and role assignments.' },
+    { id: 'rls-policies', title: '17. Row-Level Security / Access Policies', text: `PostgreSQL RLS enabled on \`${entityPlural}\` tables.` },
+    { id: 'data-validation', title: '18. Data Validation', text: 'CHECK constraints enforcing positive numerical boundaries.' },
+    { id: 'migrations', title: '19. Migrations', text: 'Version-controlled migration scripts via ORM migration tool.' },
+    { id: 'seed-data', title: '20. Seed Data', text: 'Development fixtures for initial user roles and domain records.' },
+    { id: 'transactions-integrity', title: '21. Transactions & Data Integrity', text: 'SERIALIZABLE transaction isolation for financial mutations.' },
+    { id: 'backup-recovery', title: '22. Backup & Recovery', text: 'Daily automated WAL archive snapshots with 30-day retention.' },
+    { id: 'db-security', title: '23. Database Security', text: 'SSL/TLS encrypted connections (require SSL mode).' },
+    { id: 'db-performance', title: '24. Performance Considerations', text: 'Query execution plan analysis via EXPLAIN ANALYZE.' },
+    { id: 'data-retention', title: '25. Data Retention', text: 'Soft-delete pattern with 90-day archive retention policy.' },
+    { id: 'change-log', title: '26. Database Change Log', text: 'Schema migration history log.' },
+  ];
 
-  const mermaidChart = `erDiagram
-    USERS {
-        uuid id PK
-        string email "UNIQUE"
-        string password_hash
-        timestamp created_at
-    }
-
-    ${entityPlural.toUpperCase()} {
-        uuid id PK
-        uuid user_id FK
-        string name
-        string code "UNIQUE"
-        string status
-        timestamp created_at
-    }
-
-    USERS ||--o{ ${entityPlural.toUpperCase()} : owns`;
-
-  builder.addSection({
-    id: 'erd',
-    title: '2. Entity Relationship Diagram (ERD)',
-    level: 2,
-    nodes: [
-      {
-        type: 'diagram',
-        data: {
-          diagramType: 'mermaid',
-          code: mermaidChart,
-        },
-      },
-    ],
-  });
-
-  // 3. Table Specifications
-  builder.addSection({
-    id: 'tables',
-    title: '3. Data Table Specifications',
-    level: 2,
-    nodes: [
-      {
-        type: 'paragraph',
-        text: `Primary catalog table for \`${entityPlural}\`:`,
-      },
-      {
-        type: 'table',
-        data: {
-          headers: ['Column', 'Type', 'Nullable', 'Key', 'Description'],
-          rows: [
-            ['id', 'UUID', 'No', 'PK', 'Primary key identifier'],
-            ['user_id', 'UUID', 'No', 'FK', 'References users(id) owner'],
-            ['name', 'VARCHAR(255)', 'No', '-', 'Display name'],
-            ['code', 'VARCHAR(50)', 'No', 'UNIQUE', 'Unique code constraint'],
-            ['status', 'VARCHAR(30)', 'No', '-', 'Operational status'],
-            ['created_at', 'TIMESTAMP', 'No', '-', 'Record creation timestamp'],
-          ],
-        },
-      },
-    ],
-  });
-
-  // 4. Inferred RLS Security Rules (if applicable)
-  if (project.signals.authComplexity === 'multi_tenant_rls' || project.signals.dataSensitivityScore >= 7) {
+  sections.forEach(s => {
     builder.addSection({
-      id: 'rls-policies',
-      title: '4. Row Level Security (RLS) & Authorization Policies',
+      id: s.id,
+      title: s.title,
       level: 2,
-      nodes: [
-        {
-          type: 'callout',
-          data: {
-            type: 'CAUTION',
-            title: 'Row Level Security Active',
-            content: `PostgreSQL RLS is enabled for ${entityPlural}. Direct queries without tenant auth context will be rejected by database policies.`,
-          },
-        },
-        {
-          type: 'code',
-          data: {
-            language: 'sql',
-            code: `-- Enable RLS on ${entityPlural}
-ALTER TABLE ${entityPlural} ENABLE ROW LEVEL SECURITY;
-
--- Tenant Isolation Policy
-CREATE POLICY ${entitySingular}_tenant_isolation ON ${entityPlural}
-    FOR ALL
-    USING (user_id = auth.uid());`,
-          },
-        },
-      ],
+      nodes: s.code
+        ? [{ type: 'diagram', data: { diagramType: 'mermaid', code: s.code } }]
+        : [{ type: 'paragraph', text: s.text || '> Not specified.' }],
     });
-  }
+  });
 
   return builder.build();
 }
