@@ -16,6 +16,8 @@ import { deriveDomainEntities } from './domainEntities';
  * ============================================================================
  */
 
+import { extractDomainKnowledge } from './domainKnowledge';
+
 export function analyzeProjectConfig(config: ProjectConfig): {
   projectModel: ProjectModel;
   auditTrail: ReturnType<typeof import('../explainability').generateAuditExplanations>;
@@ -24,38 +26,28 @@ export function analyzeProjectConfig(config: ProjectConfig): {
   const desc = config.description || name;
   const combinedText = `${name} ${desc} ${(config.features || []).join(' ')}`.toLowerCase();
 
-  // 1. Detect Domain Fact
-  let domainKey: DomainFact['industryType'] = 'custom';
-  let domainName = `${name} System`;
-  let userRoles = [
-    { role: `${name} Administrator`, need: `Manage system operations and data records`, permissionLevel: 3 },
-    { role: 'End User', need: 'Execute daily domain tasks with visual feedback', permissionLevel: 1 },
-  ];
-  let primaryEntityNames = ['entity'];
-  let coreWorkflows = ['record creation', 'data updating', 'report exporting'];
+  // 1. Generic Domain Knowledge Extraction
+  const knowledge = extractDomainKnowledge(config);
 
-  // Match domain blueprints
-  for (const blueprint of Object.values(DOMAIN_BLUEPRINTS)) {
-    if (blueprint.keywords.some(kw => combinedText.includes(kw))) {
-      domainKey = (blueprint.id === 'school' ? 'education' : blueprint.id === 'hospital' ? 'healthcare' : blueprint.id === 'restaurant' ? 'restaurant' : blueprint.id === 'rental' ? 'rental' : 'saas') as DomainFact['industryType'];
-      domainName = blueprint.name;
-      userRoles = blueprint.targetUsers.map((u, i) => ({
-        role: u.role,
-        need: u.need,
-        permissionLevel: i === 0 ? 3 : 1,
-      }));
-      primaryEntityNames = blueprint.tables.map(t => t.name);
-      coreWorkflows = blueprint.requirements.map(r => r.feature);
-      break;
-    }
+  let industryType: DomainFact['industryType'] = 'custom';
+  if (combinedText.includes('health') || combinedText.includes('hospital') || combinedText.includes('patient') || combinedText.includes('doctor') || combinedText.includes('medical')) {
+    industryType = 'healthcare';
+  } else if (combinedText.includes('event') || combinedText.includes('ticket') || combinedText.includes('checkin') || combinedText.includes('check-in')) {
+    industryType = 'event';
+  } else if (combinedText.includes('ecom') || combinedText.includes('shop') || combinedText.includes('product') || combinedText.includes('cart')) {
+    industryType = 'ecommerce';
+  } else if (combinedText.includes('vehicle') || combinedText.includes('car') || combinedText.includes('rental') || combinedText.includes('renter')) {
+    industryType = 'rental';
   }
 
-  // If unknown domain, synthesize custom
-  if (domainKey === 'custom') {
-    const customBlueprint = synthesizeCustomDomain(name, desc);
-    primaryEntityNames = customBlueprint.tables.map(t => t.name);
-    coreWorkflows = customBlueprint.requirements.map(r => r.feature);
-  }
+  const domainName = `${name} Platform`;
+  const userRoles = knowledge.roles.map(r => ({
+    role: r.name,
+    need: r.need || r.responsibilities.join(', '),
+    permissionLevel: r.permissionLevel || 1,
+  }));
+  const primaryEntityNames = knowledge.entities.map(e => e.tableName);
+  const coreWorkflows = knowledge.workflows.map(w => w.name);
 
   // 2. Tech Stack Facts
   const techStack: TechFact[] = (config.techStack || ['Next.js', 'TypeScript', 'PostgreSQL']).map(t => ({
@@ -74,11 +66,12 @@ export function analyzeProjectConfig(config: ProjectConfig): {
     description: desc,
     rawPrompt: config.rawPrompt || '',
     domain: {
-      domainKey: String(domainKey),
+      domainKey: String(industryType),
       domainName,
       primaryEntityNames,
-      entities: [],
-      industryType: domainKey,
+      entities: knowledge.entities,
+      knowledgeModel: knowledge,
+      industryType,
       userRoles,
       coreWorkflows,
     },

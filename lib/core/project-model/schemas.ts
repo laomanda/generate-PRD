@@ -47,6 +47,9 @@ export const RelationshipDefinitionSchema = z.object({
   description: z.string(),
 });
 
+export const ProvenanceSourceSchema = z.enum(['FACT', 'INFERENCE', 'RECOMMENDATION', 'UNKNOWN']);
+export type ProvenanceSource = z.infer<typeof ProvenanceSourceSchema>;
+
 export const DomainEntityModelSchema = z.object({
   name: z.string(),
   tableName: z.string(),
@@ -56,17 +59,69 @@ export const DomainEntityModelSchema = z.object({
   constraints: z.array(z.string()),
   indexes: z.array(z.string()),
   lifecycleStates: z.array(z.string()).optional(),
+  source: ProvenanceSourceSchema.default('INFERENCE'),
+  confidence: ConfidenceScoreSchema.default(0.85),
 });
 
 export type AttributeDefinition = z.infer<typeof AttributeDefinitionSchema>;
 export type RelationshipDefinition = z.infer<typeof RelationshipDefinitionSchema>;
 export type DomainEntityModel = z.infer<typeof DomainEntityModelSchema>;
 
+export const DomainRoleSchema = z.object({
+  name: z.string(),
+  responsibilities: z.array(z.string()).default([]),
+  permissions: z.array(z.string()).default([]),
+  permissionLevel: z.number().default(1),
+  need: z.string().optional(),
+  source: ProvenanceSourceSchema.default('INFERENCE'),
+  confidence: ConfidenceScoreSchema.default(0.8),
+});
+
+export type DomainRole = z.infer<typeof DomainRoleSchema>;
+
+export const DomainWorkflowSchema = z.object({
+  name: z.string(),
+  actors: z.array(z.string()).default([]),
+  steps: z.array(z.string()).default([]),
+  inputs: z.array(z.string()).default([]),
+  outputs: z.array(z.string()).default([]),
+  relatedEntities: z.array(z.string()).default([]),
+  source: ProvenanceSourceSchema.default('INFERENCE'),
+  confidence: ConfidenceScoreSchema.default(0.8),
+});
+
+export type DomainWorkflow = z.infer<typeof DomainWorkflowSchema>;
+
+export const DomainKnowledgeSchema = z.object({
+  domainName: z.string(),
+  entities: z.array(DomainEntityModelSchema).default([]),
+  roles: z.array(DomainRoleSchema).default([]),
+  workflows: z.array(DomainWorkflowSchema).default([]),
+  businessRules: z.array(z.string()).default([]),
+  dataObjects: z.array(z.string()).default([]),
+  integrations: z.array(z.string()).default([]),
+  risks: z.array(z.string()).default([]),
+  complianceRequirements: z.array(z.string()).default([]),
+  terminology: z.array(z.string()).default([]),
+  confidence: ConfidenceScoreSchema.default(0.85),
+  provenance: z.array(
+    z.object({
+      subject: z.string(),
+      source: ProvenanceSourceSchema,
+      confidence: ConfidenceScoreSchema,
+      reasoning: z.string(),
+    })
+  ).default([]),
+});
+
+export type DomainKnowledge = z.infer<typeof DomainKnowledgeSchema>;
+
 export const DomainFactSchema = z.object({
   domainKey: z.string(),
   domainName: z.string(),
   primaryEntityNames: z.array(z.string()),
   entities: z.array(DomainEntityModelSchema).default([]),
+  knowledgeModel: DomainKnowledgeSchema.optional(),
   industryType: z.enum([
     'saas',
     'ecommerce',
@@ -78,7 +133,7 @@ export const DomainFactSchema = z.object({
     'realestate',
     'social',
     'custom',
-    'event', // Adding event here
+    'event',
   ]),
   userRoles: z.array(
     z.object({

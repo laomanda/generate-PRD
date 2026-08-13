@@ -5,44 +5,38 @@ import { renderDocumentIRToMarkdown } from '../markdown-engine';
 export function buildPRDIR(project: ProjectModel): DocumentIR {
   const builder = new DocumentIRBuilder('PRD', `Product Requirements Document`)
     .setMetadata('Document Status', 'APPROVED & ACTIVE')
-    .setMetadata('Target Product', project.projectName)
+    .setMetadata('Target System', project.projectName)
     .setMetadata('Industry Domain', project.domain.domainName)
     .setMetadata('Risk Level', project.signals.riskLevel.toUpperCase())
     .setMetadata('Data Sensitivity', `${project.signals.dataSensitivityScore}/10`);
 
-  // Determine industry-specific nuances
-  const isHealth = project.domain.industryType === 'healthcare';
-  const isEcom = project.domain.industryType === 'ecommerce';
-  const isEvent = project.domain.industryType === 'event';
+  // Determine industry-specific nuances dynamically from Domain Knowledge Model
+  const km = project.domain.knowledgeModel;
+  const entityNames = project.domain.entities.map(e => e.name).filter(n => n !== 'User');
+  const entityListStr = entityNames.join(', ') || 'domain records';
   
-  const problemStatement = isHealth ? 'Manual paper-based patient records and scheduling conflicts leading to critical care delays.'
-    : isEcom ? 'High cart abandonment, inventory desync, and inefficient order fulfillment tracking.'
-    : isEvent ? 'Double-booked seats, fraudulent ticket scalping, and chaotic on-site venue check-ins.'
-    : `Manual workflow delays and unverified data integrity in ${project.domain.domainName}.`;
+  const problemStatement = km?.businessRules[0] 
+    ? `${project.projectName} resolves critical domain operational challenges: ${project.description}`
+    : `Operational bottlenecks, unverified data integrity, and manual tracking delays in managing ${entityListStr}.`;
 
-  const nonGoals = isHealth ? ['Hardware integration with physical MRI/X-Ray machines.', 'Automated diagnostic AI replacing doctors.']
-    : isEcom ? ['Physical warehouse robotics integration.', 'In-house delivery fleet routing system.']
-    : isEvent ? ['VR/AR virtual event streaming infrastructure.', 'Secondary ticket reselling marketplace.']
-    : ['Legacy data migration tooling (handled via separate ETL CLI).', 'Native desktop executable packaging for non-web environments.'];
-
-  const businessRules = isHealth ? [
-    'Rule BR-01: PHI/PII must be encrypted at rest and in transit (HIPAA compliance).',
-    'Rule BR-02: Only assigned doctors can modify medical records.',
-  ] : isEcom ? [
-    'Rule BR-01: Inventory must be locked for 15 minutes during checkout.',
-    'Rule BR-02: Refunds cannot exceed original transaction amount.',
-  ] : isEvent ? [
-    'Rule BR-01: QR codes expire immediately upon successful check-in.',
-    'Rule BR-02: Venue capacity cannot be exceeded under any circumstances.',
-  ] : [
-    'Rule BR-01: Users must authenticate before accessing non-public resources.',
-    'Rule BR-02: All state mutations must log timestamps and actor identifiers.',
+  const nonGoals = [
+    `Legacy batch data ETL migration tooling for ${entityNames[0] || 'entities'}.`,
+    `Native desktop OS executable packaging for non-web environments.`,
+    `Hardware-level low-level firmware flashing for third-party peripheral sensors.`,
   ];
 
-  const futureConsiderations = isHealth ? ['Telehealth video consultation integrations.', 'Wearable device health metrics syncing.']
-    : isEcom ? ['AI-driven product recommendations.', 'Subscription box recurring billing.']
-    : isEvent ? ['Interactive venue seating maps.', 'NFC wristband cashless payments at venues.']
-    : ['Realtime WebSockets push notification infrastructure.', 'Automated AI-assisted workflow predictive reporting.'];
+  const businessRules = km?.businessRules && km.businessRules.length > 0
+    ? km.businessRules
+    : [
+        `Rule BR-01: All state mutations on ${entityNames[0] || 'resources'} must log timestamps and actor identifiers.`,
+        `Rule BR-02: Role permission authorization required before executing ${project.domain.coreWorkflows[0] || 'domain actions'}.`,
+      ];
+
+  const futureConsiderations = [
+    `Automated AI-assisted workflow predictive reporting for ${project.domain.coreWorkflows[0] || 'operations'}.`,
+    `Realtime WebSockets push notification infrastructure for ${entityNames[0] || 'system'} updates.`,
+    `Mobile native app SDK integration for on-the-field operators.`,
+  ];
 
   // 1. Product Overview
   builder.addSection({
@@ -134,6 +128,9 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
     ],
   });
 
+  const personaHeaders = ['Persona Name', 'Role', 'Primary Pain Point', 'Key Motivation'];
+  const roleHeaders = ['Role', 'Core Need', 'Permission Level'];
+
   // 6. User Personas
   builder.addSection({
     id: 'personas',
@@ -143,12 +140,12 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
       {
         type: 'table',
         data: {
-          headers: ['Persona Name', 'Role', 'Primary Pain Point', 'Key Motivation'],
+          headers: personaHeaders,
           rows: project.domain.userRoles.map(u => [
             `Persona: ${u.role}`,
             u.role,
-            `Manual processing overhead in ${u.need}`,
-            `Streamlined automated interface for ${u.need}`,
+            `Experiencing manual processing overhead in ${u.need}`,
+            `Wants streamlined automated interface for ${u.need}`,
           ]),
         },
       },
@@ -164,8 +161,8 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
       {
         type: 'table',
         data: {
-          headers: ['Role', 'Core Need', 'Permission Level'],
-          rows: project.domain.userRoles.map(u => [u.role, u.need, `Level ${u.permissionLevel}`]),
+          headers: roleHeaders,
+          rows: project.domain.userRoles.map(u => [u.role, u.need, `Clearance Level ${u.permissionLevel}`]),
         },
       },
     ],
@@ -241,10 +238,11 @@ export function buildPRDIR(project: ProjectModel): DocumentIR {
         data: {
           diagramType: 'mermaid',
           code: `graph TD
-    Start["User Visits ${project.projectName}"] --> Auth["Authentication"]
-    Auth --> Dashboard["Main Dashboard"]
-    Dashboard --> Action["Execute ${project.domain.coreWorkflows[0] || 'Task'}"]
-    Action --> Success["Task Complete"]`,
+    Start["User Visits ${project.projectName}"] --> Auth["Authentication & Role Authorization"]
+    Auth --> Dashboard["${project.domain.userRoles[0]?.role || 'User'} Operational Dashboard"]
+    Dashboard --> Action["Execute ${project.domain.coreWorkflows[0] || 'Domain Operation'}"]
+    Action --> Persist["Persist ${project.domain.entities[1]?.name || 'Domain'} Record"]
+    Persist --> Success["Operation Completed"]`,
         },
       },
     ],

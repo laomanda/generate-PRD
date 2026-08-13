@@ -4,66 +4,79 @@ import { renderDocumentIRToMarkdown } from '../markdown-engine';
 
 export function buildDesignIR(project: ProjectModel): DocumentIR {
   const builder = new DocumentIRBuilder('DESIGN', `Design System & UX Specification`)
-    .setMetadata('Target Product', project.projectName)
+    .setMetadata('Target System', project.projectName)
     .setMetadata('Visual Vibe', project.designVibe)
     .setMetadata('Design Complexity', project.signals.designComplexity);
 
-  const isHealth = project.domain.industryType === 'healthcare';
-  const isEcom = project.domain.industryType === 'ecommerce';
-  const isEvent = project.domain.industryType === 'event';
-
   const designVibe = project.designVibe || 'Clean and Minimalist';
+  const entities = project.domain.entities;
+  const entityNames = entities.map(e => e.name).filter(n => n !== 'User');
+  const roles = project.domain.userRoles.map(r => r.role);
+  const workflows = project.domain.coreWorkflows;
+  const domainText = (project.domain.domainName + ' ' + project.description).toLowerCase();
 
-  const colorSystem = isHealth ? 'Primary: Trust Blue (#0A5C99). Secondary: Clean Teal (#14A098). Background: Clinical White. Accent: Alert Red for emergencies.'
-    : isEcom ? 'Primary: High-converting Orange (#FF7B00). Secondary: Charcoal Black (#1C1C1C). Background: Soft White. Accent: Sale Red.'
-    : isEvent ? 'Primary: Electric Purple (#8A2BE2). Secondary: Night Sky Black (#0B0C10). Background: Dark Mode Native. Accent: Neon Cyan.'
-    : 'Primary, Secondary, Background, Border, and Accent colors defined in CSS variables.';
+  const primaryRole = roles[0] || 'User';
+  const secondaryRole = roles[1] || 'Operator';
+  const primaryEntity = entityNames[0] || 'Record';
+  const secondaryEntity = entityNames[1] || 'Item';
 
-  const typography = isHealth ? 'Font family: Inter (highly legible) for UI body, Roboto Mono for vitals data fields.'
-    : isEcom ? 'Font family: Poppins (friendly, modern) for headings, Inter for product descriptions.'
-    : isEvent ? 'Font family: Montserrat (bold, impactful) for events, Geist Sans for details.'
-    : 'Font family: Inter / Geist Sans for UI body, JetBrains Mono for monospaced data fields.';
+  let colorSchemeName = 'Zinc Slate & Indigo Accent';
+  if (domainText.includes('health') || domainText.includes('patient') || domainText.includes('medical')) {
+    colorSchemeName = 'Clinical Clean (Calm Teal #0D9488, Soft Slate #0F172A, Pure White #FFFFFF)';
+  } else if (domainText.includes('vehicle') || domainText.includes('rental') || domainText.includes('car')) {
+    colorSchemeName = 'Industrial Fleet (Steel Blue #1E3A8A, Safety Amber #F59E0B, Dark Metal #111827)';
+  } else if (domainText.includes('drone') || domainText.includes('flight') || domainText.includes('telemetry')) {
+    colorSchemeName = 'High-Visibility Tactical (Tactical Amber #D97706, Radar Cyan #06B6D4, Stealth Black #09090B)';
+  } else if (domainText.includes('product') || domainText.includes('cart') || domainText.includes('store') || domainText.includes('shop')) {
+    colorSchemeName = 'Conversion Emerald (Emerald Green #059669, Vivid Violet #7C3AED, Warm Neutral #FAF5FF)';
+  } else if (domainText.includes('event') || domainText.includes('ticket')) {
+    colorSchemeName = 'High-Energy Neon (Electric Purple #9333EA, Neon Cyan #22D3EE, Midnight Background #0F172A)';
+  }
 
-  const uxRules = isHealth ? 'Never hide active loading indicators. Always require double-confirmation for destructive record modifications.'
-    : isEcom ? 'Minimize friction to checkout (max 3 clicks). Prominently display trust badges during payment.'
-    : isEvent ? 'Real-time countdowns for ticket reservations. High contrast QR codes for outdoor scanning.'
-    : 'Never hide active loading indicators. Always confirm destructive operations.';
+  const colorSystem = `Color palette tokens: ${colorSchemeName} defined in CSS variables matching ${designVibe} aesthetics for ${project.projectName}.`;
+  const typography = `Typography tokens: Inter / Geist Sans for ${project.projectName} UI body text, JetBrains Mono for ${primaryEntity} code identifiers.`;
+  const uxRules = `Never hide active loading indicators. Always require confirm modal for destructive ${primaryEntity} state changes.`;
+  const designRationale = `High-legibility layout and contrast scale chosen to minimize cognitive friction for ${primaryRole} and ${secondaryRole} users.`;
+  const visualDir = `Modern UI design direction utilizing ${colorSchemeName} guidelines tailored specifically for ${project.projectName}.`;
+  const spacingSystem = `Tailwind baseline scale (4px/8px) configured for data-dense ${primaryEntity} grid tables and forms.`;
 
-  const designRationale = isHealth ? 'High-contrast minimalist layout chosen to reduce cognitive load for clinical staff under stress.'
-    : isEcom ? 'Vibrant accent colors and large tap targets chosen to maximize mobile conversion rates.'
-    : isEvent ? 'Dark mode default chosen to match nightlife aesthetics and save battery during events.'
-    : 'Monospaced numbers selected for financial and data table precision.';
+  const gridCols = 12;
+  const gutter = 20;
+
+  const layoutGrid = `${gridCols}-column responsive fluid layout grid with ${gutter}px gutters customized for ${project.projectName}.`;
+  const responsiveDesign = `Fluid responsive viewports scaling across mobile, tablet, and desktop displays for ${roles.join(', ')}.`;
+  const principles = `Interface Clarity, ${primaryEntity} Data Legibility, Task Efficiency, Operational Speed.`;
 
   const sections = [
-    { id: 'design-overview', title: '1. Design Overview', text: `Visual system for **${project.projectName}** customized for the ${project.domain.industryType} domain.` },
-    { id: 'design-principles', title: '2. Design Principles', text: isHealth ? 'Legibility, Safety, Trust, Accessibility.' : isEcom ? 'Conversion, Speed, Delight, Clarity.' : 'Clarity, Speed, Accessibility, Visual Hierarchy.' },
-    { id: 'visual-direction', title: '3. Visual Direction', text: `Modern UI direction using ${designVibe} aesthetics.` },
+    { id: 'design-overview', title: '1. Design Overview', text: `Visual design system for **${project.projectName}** supporting ${project.domain.domainName} operations.` },
+    { id: 'design-principles', title: '2. Design Principles', text: principles },
+    { id: 'visual-direction', title: '3. Visual Direction', text: visualDir },
     { id: 'color-system', title: '4. Color System', text: colorSystem },
     { id: 'typography', title: '5. Typography', text: typography },
-    { id: 'spacing-system', title: '6. Spacing System', text: 'Tailwind 4px baseline scale: 1 (4px), 2 (8px), 4 (16px), 6 (24px), 8 (32px).' },
-    { id: 'border-radius', title: '7. Border Radius', text: isEvent ? 'Rounded tokens: lg (8px), xl (12px), full (9999px) for pill buttons.' : 'Rounded tokens: sm (4px), md (6px), lg (8px).' },
-    { id: 'elevation-shadows', title: '8. Elevation & Shadows', text: isHealth ? 'Flat surfaces with subtle 1px border outlines to prevent glare.' : 'Elevated card surfaces use subtle dark drop shadows.' },
-    { id: 'layout-grid', title: '9. Layout & Grid', text: '12-column responsive fluid container grid with 24px column gutters.' },
-    { id: 'responsive-design', title: '10. Responsive Design', text: 'Mobile-first layout adaptation supporting touch gestures and desktop hotkeys.' },
-    { id: 'breakpoints', title: '11. Breakpoints', text: 'sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px.' },
-    { id: 'components', title: '12. Components', text: 'Buttons, Cards, Inputs, Modals, Tables, Badges, Tabs, Skeletons.' },
-    { id: 'component-variants', title: '13. Component Variants', text: 'Default, Primary, Secondary, Outline, Ghost, Destructive variants.' },
-    { id: 'component-states', title: '14. Component States', text: 'Default, Hover, Active, Focus-Visible, Disabled, Loading.' },
-    { id: 'pages-screens', title: '15. Pages & Screens', text: `Screens for ${project.domain.coreWorkflows.join(', ')}.` },
-    { id: 'navigation', title: '16. Navigation', text: isEcom ? 'Sticky top navigation with mega-menu dropdowns.' : 'Persistent sidebar navigation with breadcrumb header trails.' },
-    { id: 'user-flows', title: '17. User Flows', text: `Interactive steps for executing ${project.domain.coreWorkflows[0] || 'primary tasks'}.` },
-    { id: 'interaction-behavior', title: '18. Interaction & Behavior', text: 'Sub-16ms touch reactivity and optimistic UI update feedback.' },
-    { id: 'forms-ux', title: '19. Forms & Validation UX', text: 'Inline Zod schema validation with dynamic error badges.' },
-    { id: 'loading-states', title: '20. Loading States', text: 'Animated skeleton pulse bars matching content layout geometry.' },
-    { id: 'empty-states', title: '21. Empty States', text: 'Clean illustration callout prompting first user creation action.' },
-    { id: 'error-states', title: '22. Error States', text: 'Banner notifications with clear retry actions and error trace IDs.' },
-    { id: 'success-feedback', title: '23. Success Feedback', text: 'Toast notifications confirming state changes with auto-dismiss.' },
-    { id: 'animation-motion', title: '24. Animation & Motion', text: isEvent ? 'Spring animations for bouncy, energetic modal entrances.' : '150ms ease-out transitions for smooth panel drawers and modals.' },
+    { id: 'spacing-system', title: '6. Spacing System', text: spacingSystem },
+    { id: 'border-radius', title: '7. Border Radius', text: `Rounded corner tokens customized for ${primaryRole} views: sm (4px) for ${primaryEntity} tags, md (6px) for ${secondaryEntity} inputs, lg (8px) for modal containers.` },
+    { id: 'elevation-shadows', title: '8. Elevation & Shadows', text: `Elevation surfaces layered specifically for ${primaryEntity} list items and ${secondaryEntity} drawer dialogs.` },
+    { id: 'layout-grid', title: '9. Layout & Grid', text: layoutGrid },
+    { id: 'responsive-design', title: '10. Responsive Design', text: responsiveDesign },
+    { id: 'breakpoints', title: '11. Breakpoints', text: `Responsive layout breakpoints tuned for ${primaryRole} viewports: Mobile (sm: 640px), Tablet (md: 768px), Desktop Workspace (lg: 1024px, xl: 1280px).` },
+    { id: 'components', title: '12. Components', text: `Dedicated component suite for ${project.projectName}: ${entityNames.map(e => `${e}Card, ${e}Table, ${e}FormModal`).join(', ')}.` },
+    { id: 'component-variants', title: '13. Component Variants', text: `Status badges and button variants for ${entityNames.slice(0, 3).join(', ')} lifecycle states.` },
+    { id: 'component-states', title: '14. Component States', text: `Interactive UI states (Default, Hover, Active, Focus-Visible, Disabled, Loading) for ${roles.join(' and ')} actions.` },
+    { id: 'pages-screens', title: '15. Pages & Screens', text: `Primary application views: ${workflows.map(w => `${w} Screen`).join(', ')}.` },
+    { id: 'navigation', title: '16. Navigation', text: `Navigation sidebar mapping core domain workspaces: ${entityNames.map(e => `${e} Management`).join(', ')}.` },
+    { id: 'user-flows', title: '17. User Flows', text: `Step-by-step UI task flow for executing ${workflows[0] || 'primary domain actions'}.` },
+    { id: 'interaction-behavior', title: '18. Interaction & Behavior', text: `Optimistic UI state updates for ${primaryEntity} mutations with sub-16ms touch responsiveness.` },
+    { id: 'forms-ux', title: '19. Forms & Validation UX', text: `Strict Zod schema form validation with inline error messages for ${entityNames.slice(0, 3).join(', ')} inputs.` },
+    { id: 'loading-states', title: '20. Loading States', text: `Skeleton shimmer loading placeholders geometry-matched to ${primaryEntity} data tables.` },
+    { id: 'empty-states', title: '21. Empty States', text: `Empty state callout encouraging ${primaryRole} users to register their first ${primaryEntity}.` },
+    { id: 'error-states', title: '22. Error States', text: `Toast notifications and alert banners for ${project.projectName} operational failure events.` },
+    { id: 'success-feedback', title: '23. Success Feedback', text: `Auto-dismissing success toasts confirming ${primaryEntity} creation and state updates.` },
+    { id: 'animation-motion', title: '24. Animation & Motion', text: `150ms ease-out transitions for ${secondaryEntity} detail drawers and modal dialogs.` },
     { id: 'ux-rules', title: '25. UX Rules', text: uxRules },
-    { id: 'accessibility', title: '26. Accessibility', text: isHealth ? 'WCAG 2.1 AAA compliance for contrast ratios, visible focus rings, ARIA landmarks.' : 'WCAG 2.1 AA compliance, visible focus rings, ARIA landmarks.' },
-    { id: 'iconography', title: '27. Iconography', text: 'Lucide-React SVG icon library with consistent 1.5px stroke weight.' },
-    { id: 'imagery-assets', title: '28. Imagery & Assets', text: 'Vector SVG illustrations and WebP optimized static image assets.' },
-    { id: 'design-tokens', title: '29. Design Tokens', text: 'Design token key-value definitions exported to Tailwind CSS variables.' },
+    { id: 'accessibility', title: '26. Accessibility', text: `WCAG 2.1 AA accessibility compliance for ${roles.join(', ')} viewports.` },
+    { id: 'iconography', title: '27. Iconography', text: `Lucide-React icon set customized for ${primaryEntity} actions and ${roles.join(', ')} workflows.` },
+    { id: 'imagery-assets', title: '28. Imagery & Assets', text: `Optimized WebP graphics and vector icons representing ${project.projectName} resources.` },
+    { id: 'design-tokens', title: '29. Design Tokens', text: `Design token schema exporting ${colorSchemeName} variables directly to Tailwind CSS.` },
     { id: 'design-decisions', title: '30. Design Decisions & Rationale', text: designRationale },
   ];
 
