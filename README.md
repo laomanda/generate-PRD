@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚠️ STATUS PROYEK: DIBERHENTIKAN SEMENTARA (PAUSED)
 
-## Getting Started
+> **Catatan Status**: Proyek ini saat ini dalam status **DIBERHENTIKAN SEMENTARA** (*temporarily paused*) dan **BELUM BERFUNGSI DENGAN BENAR** untuk penggunaan produksi maupun verifikasi akhir.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 📌 Ringkasan Status Proyek
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* **Status**: Diberhentikan Sementara (*Paused*)
+* **Kondisi Sistem**: Belum Berfungsi dengan Benar (*Not Fully Functional*)
+* **Tanggal Penangguhan**: 14 Agustus 2026
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚨 Penyebab & Masalah Utama
 
-## Learn More
+1. **Output Semantik Belum Sepenuhnya Sesuai**:
+   * Dokumentasi teknis yang dihasilkan oleh mesin engine (`PRD`, `DATABASE`, `ARCHITECTURE`, `API`, `SECURITY`, `DESIGN`, `TESTING`, `DEPLOYMENT`) masih memerlukan validasi mendalam agar benar-benar merepresentasikan domain nyata secara kontekstual dan substantif.
+2. **Ketergantungan pada Template & Generik**:
+   * Struktur dan kosakata bawaan antar-dokumen teknis masih memiliki kesamaan (boilerplate) yang memerlukan penyempurnaan pada *Knowledge Graph* dan *Domain Reasoning Pipeline*.
+3. **Pekerjaan Refactoring dan Verifikasi Belum Selesai**:
+   * Pengujian mutasi semantik dan validasi diagram Mermaid masih dalam tahap perbaikan lanjutan sebelum sistem dapat dinyatakan siap pakai.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📋 Tindakan yang Diperlukan Saat Proyek Dilanjutkan (*Next Steps*)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Jika proyek ini akan dilanjutkan kembali di masa mendatang, langkah-langkah yang harus dilakukan meliputi:
 
-## Deploy on Vercel
+1. **Penyempurnaan Domain Knowledge Pipeline**:
+   * Mengembangkan pemahaman domain secara dinamis tanpa relying pada keyword matching sederhana.
+2. **Pengurangan Overlap & Boilerplate**:
+   * Memastikan setiap generator dokumen menghasilkan konten spesifik yang unik dan benar-benar mencerminkan logika bisnis domain sasaran.
+3. **Pengujian Integrasi End-to-End**:
+   * Menjalankan audit menyeluruh terhadap hasil ekspor bundling ZIP dan verifikasi UI workspace store secara penuh.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Dokumen ini dibuat secara resmi sebagai penanda bahwa pengoperasian dan pengembangan proyek dihentikan sementara waktu.*
